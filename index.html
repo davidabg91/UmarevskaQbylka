@@ -8,7 +8,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&family=Playfair+Display:ital,wght@0,500;0,600;0,700;1,500&display=swap" rel="stylesheet" />
-  <link rel="stylesheet" href="styles.css?v=3" />
+  <link rel="stylesheet" href="styles.css?v=4" />
   <link rel="icon" href="img/logo.png" />
 </head>
 <body>
@@ -25,6 +25,7 @@
         <a href="#varieties">Сортове</a>
         <a href="#shop">Магазин</a>
         <a href="#blog">Блог</a>
+        <a href="#locations">Обекти</a>
         <a href="#contact">Контакти</a>
       </nav>
       <div class="nav__actions">
@@ -284,6 +285,51 @@
     <div class="blog__grid" id="blogGrid"><!-- injected by JS --></div>
   </section>
 
+  <!-- ===== LOCATIONS ===== -->
+  <section class="locations" id="locations">
+    <div class="section-head reveal">
+      <span class="kicker">Обекти</span>
+      <h2>Заповядайте да купите на място</h2>
+      <p class="section-head__sub">Освен онлайн, можете да закупите свежи ябълки и сок директно от нашите обекти.</p>
+    </div>
+
+    <div class="locations__grid">
+
+      <article class="location reveal">
+        <div class="location__media">
+          <img src="img/obekt-umarevci.png" alt="Обект Умаревци" loading="lazy" />
+          <span class="location__badge">Обект 1</span>
+        </div>
+        <div class="location__body">
+          <h3>Село Умаревци</h3>
+          <p class="location__addr">📍 с. Умаревци, обл. Ловеч</p>
+          <p>Нашият основен обект във фермата — тук намирате цялата гама свежи ябълки и натурален сок.</p>
+          <div class="location__map">
+            <iframe src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d3480.3661738491537!2d24.7974997!3d43.1987774!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x40abe10eef27a615%3A0x9bf519bb2b0117e1!2z0KPQvNCw0YDQtdCy0YHQutCwINCv0LHRitC70LrQsA!5e1!3m2!1sbg!2sbg!4v1780301647998!5m2!1sbg!2sbg" style="border:0;" allowfullscreen="" loading="lazy" referrerpolicy="no-referrer-when-downgrade"></iframe>
+          </div>
+          <a class="location__dir" href="https://www.google.com/maps/search/?api=1&query=43.1987774,24.7974997" target="_blank" rel="noopener">Виж в Google Maps →</a>
+        </div>
+      </article>
+
+      <article class="location reveal">
+        <div class="location__media location__media--alt">
+          <span class="location__pin">🍎</span>
+          <span class="location__badge">Обект 2</span>
+        </div>
+        <div class="location__body">
+          <h3>Село Брестовец, Плевен</h3>
+          <p class="location__addr">📍 на главния път, с. Брестовец, обл. Плевен</p>
+          <p>Удобен обект на главния път — отбийте се за свежи ябълки и сок на път.</p>
+          <div class="location__map">
+            <iframe src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d862.4152513729631!2d24.611369940030873!3d43.35908395170052!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x40abf30001785df9%3A0x35f3cfc8a1836800!2z0KPQvNCw0YDQtdCy0YHQutCwINCv0LHRitC70LrQsCAyLjA!5e0!3m2!1sbg!2sbg!4v1780301753908!5m2!1sbg!2sbg" style="border:0;" allowfullscreen="" loading="lazy" referrerpolicy="no-referrer-when-downgrade"></iframe>
+          </div>
+          <a class="location__dir" href="https://www.google.com/maps/search/?api=1&query=43.35908395170052,24.611369940030873" target="_blank" rel="noopener">Виж в Google Maps →</a>
+        </div>
+      </article>
+
+    </div>
+  </section>
+
   <!-- ===== CONTACT / CTA ===== -->
   <section class="contact" id="contact">
     <div class="contact__card reveal">
@@ -294,7 +340,7 @@
         <ul class="contact__list">
           <li>📍 с. Умаревци, България</li>
           <li>✉️ info@umarevska-yabalka.bg</li>
-          <li>📞 +359 88 000 0000</li>
+          <li>📞 <a href="tel:+359896799117">089 679 9117</a></li>
         </ul>
       </div>
       <form class="contact__form" onsubmit="return umFakeSubmit(event)">
@@ -319,6 +365,7 @@
         <a href="#varieties">Сортове</a>
         <a href="#shop">Магазин</a>
         <a href="#blog">Блог</a>
+        <a href="#locations">Обекти</a>
         <a href="#contact">Контакти</a>
       </div>
     </div>
@@ -357,7 +404,7 @@
     </div>
   </div>
 
-  <script src="articles.js?v=3"></script>
-  <script src="script.js?v=3"></script>
+  <script src="articles.js?v=4"></script>
+  <script src="script.js?v=4"></script>
 </body>
 </html>

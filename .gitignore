@@ -12,3 +12,6 @@ Thumbs.db
 # Helper images downloaded during dev (test artifacts)
 img/_test.jpg
 img/_try_*.jpg
+
+# Original source screenshot (copied into img/obekt-umarevci.png)
+Screenshot*.png

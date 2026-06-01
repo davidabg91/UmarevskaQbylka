@@ -29,6 +29,14 @@
     '</div>' +
     '<div class="article__cover"><img src="' + a.img + '" alt="' + a.title + '"></div>' +
     '<article class="article__body">' + a.body + '</article>' +
+    '<aside class="article__cta">' +
+      '<span class="article__cta-emoji">🍎</span>' +
+      '<div class="article__cta-text">' +
+        '<h3>' + (a.ctaTitle || 'Поръчайте директно от фермата') + '</h3>' +
+        '<p>' + (a.ctaText || 'Свежи ябълки и 100% натурален сок от Умаревска Ябълка — поръчайте лесно онлайн.') + '</p>' +
+      '</div>' +
+      '<a href="index.html#shop" class="btn btn--primary">Към магазина →</a>' +
+    '</aside>' +
     '<div class="article__foot">' +
       '<a href="index.html#blog" class="btn btn--ghost btn--dark">← Всички статии</a>' +
       '<a href="index.html#shop" class="btn btn--primary">Към магазина</a>' +
