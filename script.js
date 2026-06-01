@@ -1,5 +1,43 @@
 /* ===================== УМАРЕВСКА ЯБЪЛКА ===================== */
 
+/* ---------- PRELOADER ---------- */
+(function() {
+  const preloader = document.getElementById('preloader');
+  const heroVideo = document.querySelector('.hero__video');
+  let loaded = false;
+
+  function removePreloader() {
+    if (loaded) return;
+    loaded = true;
+    if (preloader) {
+      preloader.classList.add('fade-out');
+      document.body.classList.remove('loading');
+      setTimeout(() => {
+        preloader.style.display = 'none';
+      }, 600);
+    }
+  }
+
+  if (heroVideo) {
+    if (heroVideo.readyState >= 3) {
+      removePreloader();
+    } else {
+      heroVideo.addEventListener('canplay', removePreloader);
+      heroVideo.addEventListener('canplaythrough', removePreloader);
+      heroVideo.addEventListener('playing', removePreloader);
+    }
+    // Safety fallback: if video is slow or fails, clear preloader after 4.5s
+    setTimeout(removePreloader, 4500);
+  } else {
+    if (document.readyState === 'complete') {
+      removePreloader();
+    } else {
+      window.addEventListener('load', removePreloader);
+    }
+    setTimeout(removePreloader, 1500);
+  }
+})();
+
 /* ---------- NAV ---------- */
 const nav = document.getElementById('nav');
 const burger = document.getElementById('burger');

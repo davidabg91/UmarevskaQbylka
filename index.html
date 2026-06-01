@@ -11,7 +11,31 @@
   <link rel="stylesheet" href="styles.css?v=4" />
   <link rel="icon" href="img/logo.png" />
 </head>
-<body>
+<body class="loading">
+
+  <!-- ===== PRELOADER ===== -->
+  <div id="preloader" class="preloader">
+    <div class="preloader__content">
+      <svg viewBox="0 0 100 100" class="preloader__apple">
+        <!-- Leaf -->
+        <path d="M55,24 C62,15 72,18 74,20 C75,25 70,35 60,37 C57,32 55,27 55,24 Z" fill="#52b788" />
+        <!-- Stem -->
+        <path d="M50,38 C50,30 53,25 57,20" stroke="#2d6a4f" stroke-width="4" stroke-linecap="round" fill="none" />
+        <!-- Apple Body -->
+        <path d="M50,40 
+                 C43,36 30,36 22,46 
+                 C12,58 16,78 28,88 
+                 C36,94 45,91 50,86 
+                 C55,91 64,94 72,88 
+                 C84,78 88,58 78,46 
+                 C70,36 57,36 50,40 Z" fill="#c1272d" />
+      </svg>
+      <div class="preloader__text">Умаревска<strong>Ябълка</strong></div>
+      <div class="preloader__loader-track">
+        <div class="preloader__loader-bar"></div>
+      </div>
+    </div>
+  </div>
 
   <!-- ===== NAV ===== -->
   <header class="nav" id="nav">
