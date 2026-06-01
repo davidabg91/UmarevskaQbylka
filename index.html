@@ -23,7 +23,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&family=Playfair+Display:ital,wght@0,500;0,600;0,700;1,500&display=swap" rel="stylesheet" />
-  <link rel="stylesheet" href="styles.css?v=4" />
+  <link rel="stylesheet" href="styles.css?v=13" />
   <link rel="icon" href="img/logo.png" />
 </head>
 <body class="loading">
@@ -61,7 +61,6 @@
       </a>
       <nav class="nav__links" id="navLinks">
         <a href="#story">За нас</a>
-        <a href="#varieties">Сортове</a>
         <a href="#shop">Магазин</a>
         <a href="#blog">Блог</a>
         <a href="#locations">Обекти</a>
@@ -152,14 +151,25 @@
     </div>
   </section>
 
-  <!-- ===== VARIETIES ===== -->
-  <section class="varieties" id="varieties">
+  <!-- ===== SHOP ===== -->
+  <section class="shop" id="shop">
     <div class="section-head reveal">
-      <span class="kicker">Нашите сортове</span>
-      <h2>Пет характера, един стандарт за качество</h2>
+      <span class="kicker">Магазин</span>
+      <h2>Поръчайте директно от фермата</h2>
+      <p class="section-head__sub">Изберете от нашите селектирани сортове ябълки, миксове или 100% натурален сок.</p>
     </div>
+
+    <!-- Category Filters -->
+    <div class="shop__filters reveal">
+      <button class="filter-btn active" data-filter="all">Всички продукти</button>
+      <button class="filter-btn" data-filter="variety">Сортове ябълки</button>
+      <button class="filter-btn" data-filter="mix-juice">Сок и миксове</button>
+    </div>
+
+    <!-- Shop Grid -->
     <div class="varieties__grid">
-      <article class="variety reveal" style="--c:#c1272d">
+      <!-- 1. Fuji -->
+      <article class="variety reveal" style="--c:#c1272d" data-category="variety">
         <div class="variety__top"><img src="img/fuji.jpg" alt="Фуджи" loading="lazy" /></div>
         <h3>Фуджи</h3>
         <p>Изключително сладка и хрупкава, с плътен сочен вкус. Любимка за директна консумация.</p>
@@ -176,7 +186,9 @@
           </div>
         </div>
       </article>
-      <article class="variety reveal" style="--c:#e07a5f">
+
+      <!-- 2. Pinova -->
+      <article class="variety reveal" style="--c:#e07a5f" data-category="variety">
         <div class="variety__top"><img src="img/pinova.jpg" alt="Пинова" loading="lazy" /></div>
         <h3>Пинова</h3>
         <p>Балансиран сладко-кисел вкус и ароматна плът. Отлична и прясна, и в сок.</p>
@@ -193,7 +205,9 @@
           </div>
         </div>
       </article>
-      <article class="variety reveal" style="--c:#52b788">
+
+      <!-- 3. Granny Smith -->
+      <article class="variety reveal" style="--c:#52b788" data-category="variety">
         <div class="variety__top"><img src="img/granny.jpg" alt="Грени Смит" loading="lazy" /></div>
         <h3>Грени Смит</h3>
         <p>Свежо кисела и стегната — класика за освежаващ вкус и за печене.</p>
@@ -210,7 +224,9 @@
           </div>
         </div>
       </article>
-      <article class="variety reveal" style="--c:#e9b949">
+
+      <!-- 4. Golden Delicious -->
+      <article class="variety reveal" style="--c:#e9b949" data-category="variety">
         <div class="variety__top"><img src="img/golden.jpg" alt="Златна превъзходна" loading="lazy" /></div>
         <h3>Златна превъзходна</h3>
         <p>Мека сладост и нежен аромат, със златиста кожа. Универсален любимец.</p>
@@ -227,7 +243,9 @@
           </div>
         </div>
       </article>
-      <article class="variety reveal" style="--c:#b5651d">
+
+      <!-- 5. Florina -->
+      <article class="variety reveal" style="--c:#b5651d" data-category="variety">
         <div class="variety__top"><img src="img/florina.jpg" alt="Флорина" loading="lazy" /></div>
         <h3>Флорина</h3>
         <p>Наситен цвят и устойчив, богат вкус. Отлично се съхранява през сезона.</p>
@@ -244,73 +262,78 @@
           </div>
         </div>
       </article>
-      <article class="variety variety--cta reveal">
-        <h3>Не знаете кой да изберете?</h3>
-        <p>Поръчайте микс от сортове и открийте своя фаворит.</p>
-        <a href="#shop" class="btn btn--primary btn--sm">Поръчай сега</a>
-      </article>
-    </div>
-  </section>
 
-  <!-- ===== SHOP ===== -->
-  <section class="shop" id="shop">
-    <div class="section-head reveal">
-      <span class="kicker">Магазин</span>
-      <h2>Поръчайте директно от фермата</h2>
-      <p class="section-head__sub">Свежи ябълки на килограм и нашият 100% натурален ябълков сок.</p>
-    </div>
-
-    <div class="shop__grid">
-
-      <!-- Apples product -->
-      <article class="product reveal">
-        <div class="product__media product__media--apples">
-          <img src="img/mix.jpg" alt="Микс от свежи ябълки" loading="lazy" />
-          <span class="product__badge">2 € / кг</span>
-        </div>
-        <div class="product__body">
-          <h3 class="product__title">Свежи ябълки — микс</h3>
-          <p class="product__desc">Микс от нашите сортове, брани в зрялост. Изберете количество.</p>
-
-          <div class="product__options" id="appleWeights">
-            <button class="weight active" data-kg="5">5 кг<span>10 €</span></button>
-            <button class="weight" data-kg="10">10 кг<span>20 €</span></button>
-            <button class="weight" data-kg="20">20 кг<span>40 €</span></button>
+      <!-- 6. Apples Mix -->
+      <article class="variety reveal" style="--c:#c1272d" data-category="mix-juice">
+        <div class="variety__top"><img src="img/mix.jpg" alt="Свежи ябълки (микс)" loading="lazy" /></div>
+        <h3>Свежи ябълки (микс)</h3>
+        <p>Прецизно подбран микс от най-добрите ни сортове за сезона, набрани в перфектна зрялост.</p>
+        <span class="variety__tag">Селектиран микс</span>
+        <div class="variety__order">
+          <div class="variety__weights" id="appleWeights">
+            <button class="vw weight active" data-kg="5">5 кг</button>
+            <button class="vw weight" data-kg="10">10 кг</button>
+            <button class="vw weight" data-kg="20">20 кг</button>
           </div>
-
-          <div class="product__foot">
-            <div class="product__price"><span id="appleTotal">10</span> €</div>
-            <button class="btn btn--primary" id="addApples">Добави в кошницата</button>
+          <div class="variety__buy">
+            <span class="variety__price"><span id="appleTotal">10</span> €</span>
+            <button class="btn btn--primary btn--sm" id="addApples">Поръчай</button>
           </div>
         </div>
       </article>
 
-      <!-- Juice product -->
-      <article class="product reveal">
-        <div class="product__media product__media--juice">
-          <img src="img/juice.jpg" alt="Натурален ябълков сок" loading="lazy" />
-          <span class="product__badge">Бестселър</span>
-        </div>
-        <div class="product__body">
-          <h3 class="product__title">Натурален ябълков сок</h3>
-          <p class="product__desc">100% натурален, без добавена захар и консерванти. Цялата свежест на зрелите ябълки.</p>
-
-          <div class="product__options">
-            <div class="qty" id="juiceQty">
-              <button data-act="dec" aria-label="По-малко">−</button>
-              <span id="juiceCount">1</span>
-              <button data-act="inc" aria-label="Повече">+</button>
+      <!-- 7. Natural Juice (Featured) -->
+      <article class="variety variety--featured reveal" style="--c:#2d6a4f" data-category="mix-juice">
+        <div class="variety__top variety__top--juice"><img src="img/juice.jpg" alt="Натурален ябълков сок" loading="lazy" /></div>
+        <div class="variety__content">
+          <div class="variety__header-group">
+            <span class="variety__badge">Премиум Продукт</span>
+            <h3>Натурален ябълков сок</h3>
+          </div>
+          <p class="variety__lead">100% студено пресован, без консерванти, оцветители или добавена захар. Цялата свежест на слънчевите ябълки от нашите градини, концентрирана в удобна трилитрова опаковка.</p>
+          
+          <div class="variety__bullets">
+            <div class="bullet-item">
+              <span class="bullet-icon">🍎</span>
+              <div class="bullet-text">
+                <strong>100% Студено пресован</strong>
+                <p>Извлича се по механичен начин за максимално запазване на витамините, вкуса и полезните свойства.</p>
+              </div>
             </div>
-            <span class="product__unit">бр. × 10 €</span>
+            <div class="bullet-item">
+              <span class="bullet-icon">🧪</span>
+              <div class="bullet-text">
+                <strong>Чист натурален състав</strong>
+                <p>Щадящо пастьоризиран продукт, без никакви консерванти, изкуствени подсладители или добавена вода.</p>
+              </div>
+            </div>
+            <div class="bullet-item">
+              <span class="bullet-icon">📦</span>
+              <div class="bullet-text">
+                <strong>Интелигентна Bag-in-Box опаковка</strong>
+                <p>Трилитров кашон с вградено кранче, което предотвратява навлизането на въздух и съхранява сока свеж със седмици.</p>
+              </div>
+            </div>
           </div>
-
-          <div class="product__foot">
-            <div class="product__price"><span id="juiceTotal">10</span> €</div>
-            <button class="btn btn--primary" id="addJuice">Добави в кошницата</button>
+          
+          <div class="variety__footer-featured">
+            <span class="variety__tag" style="color:#2d6a4f; background:rgba(45, 106, 79, 0.12); margin-bottom: 0;">100% Натурален · 3 л</span>
+            <div class="variety__order" style="border-top: none; padding-top: 0; margin-top: 0; display: flex; align-items: center; justify-content: flex-end; gap: 1.5rem; flex-wrap: wrap;">
+              <div class="variety__weights" style="margin-bottom: 0; width: 140px;">
+                <div class="qty-select" id="juiceQty" style="display: flex; align-items: center; border: 1.5px solid var(--line); border-radius: 10px; width: 100%; overflow: hidden;">
+                  <button data-act="dec" style="flex: 1; height: 38px; border: none; background: #fff; font-size: 1.2rem; cursor: pointer; color: var(--ink); font-weight: 700;">−</button>
+                  <span style="flex: 1.2; text-align: center; font-weight: 800; font-size: 0.9rem; line-height: 38px;"><span id="juiceCount">1</span> бр.</span>
+                  <button data-act="inc" style="flex: 1; height: 38px; border: none; background: #fff; font-size: 1.2rem; cursor: pointer; color: var(--ink); font-weight: 700;">+</button>
+                </div>
+              </div>
+              <div class="variety__buy" style="gap: 1.5rem;">
+                <span class="variety__price" style="font-size: 1.6rem;"><span id="juiceTotal">10</span> €</span>
+                <button class="btn btn--primary" id="addJuice" style="padding: 0.8rem 2rem;">Поръчай</button>
+              </div>
+            </div>
           </div>
         </div>
       </article>
-
     </div>
   </section>
 
@@ -401,14 +424,13 @@
       <p class="footer__tag">Натурални ябълки и сок от сърцето на село Умаревци.</p>
       <div class="footer__links">
         <a href="#story">За нас</a>
-        <a href="#varieties">Сортове</a>
         <a href="#shop">Магазин</a>
         <a href="#blog">Блог</a>
         <a href="#locations">Обекти</a>
         <a href="#contact">Контакти</a>
       </div>
     </div>
-    <div class="footer__bar">© <span id="year"></span> Умаревска Ябълка. Всички права запазени.</div>
+    <div class="footer__bar">© <span id="year"></span> Умаревска Ябълка. Всички права запазени. · Сайтът е изработен от <a href="https://davidax.org/" target="_blank" rel="noopener" class="footer__dev-link">DavidaX</a></div>
   </footer>
 
   <!-- ===== CART DRAWER ===== -->
@@ -443,7 +465,7 @@
     </div>
   </div>
 
-  <script src="articles.js?v=4"></script>
-  <script src="script.js?v=4"></script>
+  <script src="articles.js?v=11"></script>
+  <script src="script.js?v=11"></script>
 </body>
 </html>

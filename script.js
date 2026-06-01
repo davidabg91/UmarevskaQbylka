@@ -134,13 +134,40 @@ if (juiceQty) {
   });
 }
 
+/* --- Category Filters --- */
+const filterBtns = document.querySelectorAll('.filter-btn');
+const shopCards = document.querySelectorAll('.varieties__grid .variety');
+
+if (filterBtns.length && shopCards.length) {
+  filterBtns.forEach(btn => {
+    btn.addEventListener('click', () => {
+      filterBtns.forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      
+      const filterValue = btn.dataset.filter;
+      
+      shopCards.forEach(card => {
+        const category = card.dataset.category;
+        if (filterValue === 'all' || category === filterValue) {
+          card.classList.remove('hidden');
+        } else {
+          card.classList.add('hidden');
+        }
+      });
+    });
+  });
+}
+
 /* --- Per-variety ordering (мин. 5 кг) --- */
 document.querySelectorAll('.variety__order').forEach(function(block){
+  var vaddBtn = block.querySelector('.vadd');
+  var priceEl = block.querySelector('.vp');
+  if (!vaddBtn || !priceEl) return; // Skip non-variety cards (Mix & Juice)
+  
   var card = block.closest('.variety');
   var name = card.querySelector('h3').textContent.trim();
   var imgEl = card.querySelector('.variety__top img');
   var img = imgEl ? imgEl.getAttribute('src') : '';
-  var priceEl = block.querySelector('.vp');
   var kg = 5;
   block.querySelectorAll('.vw').forEach(function(b){
     b.addEventListener('click', function(){
@@ -150,7 +177,7 @@ document.querySelectorAll('.variety__order').forEach(function(block){
       priceEl.textContent = kg * APPLE_PRICE_PER_KG;
     });
   });
-  block.querySelector('.vadd').addEventListener('click', function(){
+  vaddBtn.addEventListener('click', function(){
     addToCart({
       id: 'variety-' + name + '-' + kg,
       type: 'apples',
