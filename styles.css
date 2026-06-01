@@ -57,12 +57,14 @@ section{position:relative}
 /* ===== NAV ===== */
 .nav{position:fixed;top:0;left:0;right:0;z-index:60;transition:background .35s,box-shadow .35s,padding .35s}
 .nav__inner{
-  max-width:var(--maxw);margin:0 auto;padding:1.1rem 1.4rem;
-  display:flex;align-items:center;justify-content:space-between;gap:1rem;
+  max-width:var(--maxw);margin:0 auto;padding:1.15rem 1.4rem;
+  display:flex;align-items:center;gap:1rem;
+  transition:padding 0.35s ease;
 }
 .nav.scrolled{background:rgba(250,246,239,.85);backdrop-filter:blur(14px);box-shadow:0 6px 24px -16px rgba(0,0,0,.4)}
+.nav.scrolled .nav__inner{padding:0.65rem 1.4rem}
 .nav.scrolled .nav__links a,.nav.scrolled .brand,.nav.scrolled .cart-btn,.nav.scrolled .nav__burger span{color:var(--ink)}
-.brand{display:flex;align-items:center;gap:.55rem;color:#fff;font-family:'Playfair Display';font-size:1.3rem;transition:color .35s}
+.brand{display:flex;align-items:center;gap:.55rem;color:#fff;font-family:'Playfair Display';font-size:1.3rem;transition:color .35s;flex:1}
 .brand__mark{font-size:1.4rem}
 .brand__text{font-weight:600}
 .brand__text strong{color:var(--red);margin-left:.18em;font-weight:700}
@@ -71,7 +73,7 @@ section{position:relative}
 .nav__links a{color:#fff;font-weight:600;font-size:.96rem;position:relative;transition:color .35s}
 .nav__links a::after{content:"";position:absolute;left:0;bottom:-5px;width:0;height:2px;background:var(--red);transition:width .3s}
 .nav__links a:hover::after{width:100%}
-.nav__actions{display:flex;align-items:center;gap:.8rem}
+.nav__actions{display:flex;align-items:center;gap:.8rem;flex:1;justify-content:flex-end}
 .cart-btn{position:relative;background:none;border:none;color:#fff;cursor:pointer;display:grid;place-items:center;transition:color .35s,transform .2s}
 .cart-btn:hover{transform:scale(1.08)}
 .cart-btn__count{
@@ -320,7 +322,8 @@ section{position:relative}
 /* ===== FOOTER ===== */
 .footer{background:var(--ink);color:#fff;padding:3.5rem 1.4rem 0}
 .footer__inner{max-width:var(--maxw);margin:0 auto;text-align:center;display:flex;flex-direction:column;align-items:center;gap:1rem}
-.brand__logo{height:36px;width:auto;display:block}
+.brand__logo{height:52px;width:auto;display:block;transition:height 0.35s ease}
+.nav.scrolled .brand__logo{height:42px}
 .brand__logo--footer{height:48px}
 .brand--footer{color:#fff;font-size:1.5rem}
 .footer__tag{color:rgba(255,255,255,.6);max-width:440px}
@@ -449,6 +452,8 @@ section{position:relative}
   .modal__body{padding:0 1.4rem 2rem}
   .contact__text,.contact__form{padding:2rem}
   .story__stats{gap:1.4rem}
+  .brand__logo{height:44px}
+  .nav.scrolled .brand__logo{height:38px}
 }
 
 /* ===== PRELOADER ===== */
