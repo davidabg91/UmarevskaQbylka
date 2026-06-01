@@ -1,0 +1,371 @@
+<!DOCTYPE html>
+<html lang="bg">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Умаревска Ябълка — Натурални ябълки и сок от с. Умаревци</title>
+  <meta name="description" content="Умаревска Ябълка — българска фирма за отглеждане на висококачествени ябълки и 100% натурален ябълков сок. Сортове Фуджи, Пинова, Грени Смит, Златна превъзходна и Флорина." />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&family=Playfair+Display:ital,wght@0,500;0,600;0,700;1,500&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="styles.css?v=2" />
+  <link rel="icon" href="img/logo.png" />
+</head>
+<body>
+
+  <!-- ===== NAV ===== -->
+  <header class="nav" id="nav">
+    <div class="nav__inner">
+      <a href="#hero" class="brand">
+        <img src="img/logo.png" alt="Умаревска Ябълка" class="brand__logo" />
+        <span class="brand__text">Умаревска<strong>Ябълка</strong></span>
+      </a>
+      <nav class="nav__links" id="navLinks">
+        <a href="#story">За нас</a>
+        <a href="#varieties">Сортове</a>
+        <a href="#shop">Магазин</a>
+        <a href="#blog">Блог</a>
+        <a href="#contact">Контакти</a>
+      </nav>
+      <div class="nav__actions">
+        <button class="cart-btn" id="cartToggle" aria-label="Кошница">
+          <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="21" r="1"/><circle cx="20" cy="21" r="1"/><path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"/></svg>
+          <span class="cart-btn__count" id="cartCount">0</span>
+        </button>
+        <button class="nav__burger" id="burger" aria-label="Меню"><span></span><span></span><span></span></button>
+      </div>
+    </div>
+  </header>
+
+  <!-- ===== HERO ===== -->
+  <section class="hero" id="hero">
+    <video class="hero__video" autoplay muted loop playsinline poster="">
+      <source src="13779417-uhd_3840_2160_60fps.mp4" type="video/mp4" />
+    </video>
+    <div class="hero__overlay"></div>
+    <div class="hero__content">
+      <span class="hero__eyebrow">от с. Умаревци · България</span>
+      <h1 class="hero__title">УМАРЕВСКА<br><span>ЯБЪЛКА</span></h1>
+      <p class="hero__sub">Висококачествени ябълки и 100% натурален сок, отгледани с грижа и брани в перфектна зрялост.</p>
+      <div class="hero__cta">
+        <a href="#shop" class="btn btn--primary">Към магазина</a>
+        <a href="#story" class="btn btn--ghost">Нашата история</a>
+      </div>
+    </div>
+    <a href="#story" class="hero__scroll" aria-label="Надолу">
+      <span></span>
+    </a>
+  </section>
+
+  <!-- ===== STRIP ===== -->
+  <div class="strip">
+    <div class="strip__track">
+      <span>🍎 Фуджи</span><span>•</span><span>Пинова</span><span>•</span><span>Грени Смит</span><span>•</span><span>Златна превъзходна</span><span>•</span><span>Флорина</span><span>•</span><span>100% Натурален сок</span><span>•</span>
+      <span>🍎 Фуджи</span><span>•</span><span>Пинова</span><span>•</span><span>Грени Смит</span><span>•</span><span>Златна превъзходна</span><span>•</span><span>Флорина</span><span>•</span><span>100% Натурален сок</span><span>•</span>
+    </div>
+  </div>
+
+  <!-- ===== STORY (втора видео секция) ===== -->
+  <section class="story" id="story">
+    <div class="story__media">
+      <video class="story__video" autoplay muted loop playsinline>
+        <source src="19666848-uhd_3840_2160_24fps.mp4" type="video/mp4" />
+      </video>
+      <div class="story__media-frame"></div>
+    </div>
+    <div class="story__text reveal">
+      <span class="kicker">Нашата история</span>
+      <h2>Утвърден български вкус <em>от сърцето на Умаревци</em></h2>
+      <p>Умаревска Ябълка е утвърдена българска фирма, фокусирана върху производството и предлагането на висококачествени плодове и натурални продукти. Базирани сме в живописното село Умаревци и се специализираме в отглеждането на различни сортове ябълки.</p>
+      <p>Плодовете ни са култивирани с внимание, като целта е те да достигат до клиентите в отлична форма и зрялост. Потребителите отбелязват ясната разлика във вкуса и качеството спрямо ябълките от масовите търговски вериги.</p>
+      <div class="story__stats">
+        <div><strong>5</strong><span>сорта ябълки</span></div>
+        <div><strong>100%</strong><span>натурален сок</span></div>
+        <div><strong>0</strong><span>добавки и захар</span></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ===== VALUES ===== -->
+  <section class="values">
+    <div class="values__grid">
+      <article class="value reveal">
+        <span class="value__icon">🌳</span>
+        <h3>Отгледани с грижа</h3>
+        <p>Всяко дърво получава внимание през целия сезон, за да даде здрави и сочни плодове.</p>
+      </article>
+      <article class="value reveal">
+        <span class="value__icon">⏱️</span>
+        <h3>Брани в зрялост</h3>
+        <p>Берем в точния момент, за да запазим максимума от вкус, аромат и хранителни стойности.</p>
+      </article>
+      <article class="value reveal">
+        <span class="value__icon">🧃</span>
+        <h3>Сок без компромис</h3>
+        <p>100% натурален ябълков сок, без добавена захар, концентрати или консерванти.</p>
+      </article>
+      <article class="value reveal">
+        <span class="value__icon">🚜</span>
+        <h3>Директно от фермата</h3>
+        <p>От нашата градина до вашия дом — свежест, на която можете да се доверите.</p>
+      </article>
+    </div>
+  </section>
+
+  <!-- ===== VARIETIES ===== -->
+  <section class="varieties" id="varieties">
+    <div class="section-head reveal">
+      <span class="kicker">Нашите сортове</span>
+      <h2>Пет характера, един стандарт за качество</h2>
+    </div>
+    <div class="varieties__grid">
+      <article class="variety reveal" style="--c:#c1272d">
+        <div class="variety__top"><img src="img/fuji.jpg" alt="Фуджи" loading="lazy" /></div>
+        <h3>Фуджи</h3>
+        <p>Изключително сладка и хрупкава, с плътен сочен вкус. Любимка за директна консумация.</p>
+        <span class="variety__tag">Сладка · Хрупкава</span>
+        <div class="variety__order">
+          <div class="variety__weights">
+            <button class="vw active" data-kg="5">5 кг</button>
+            <button class="vw" data-kg="10">10 кг</button>
+            <button class="vw" data-kg="20">20 кг</button>
+          </div>
+          <div class="variety__buy">
+            <span class="variety__price"><span class="vp">10</span> €</span>
+            <button class="btn btn--primary btn--sm vadd">Поръчай</button>
+          </div>
+        </div>
+      </article>
+      <article class="variety reveal" style="--c:#e07a5f">
+        <div class="variety__top"><img src="img/pinova.jpg" alt="Пинова" loading="lazy" /></div>
+        <h3>Пинова</h3>
+        <p>Балансиран сладко-кисел вкус и ароматна плът. Отлична и прясна, и в сок.</p>
+        <span class="variety__tag">Балансирана · Ароматна</span>
+        <div class="variety__order">
+          <div class="variety__weights">
+            <button class="vw active" data-kg="5">5 кг</button>
+            <button class="vw" data-kg="10">10 кг</button>
+            <button class="vw" data-kg="20">20 кг</button>
+          </div>
+          <div class="variety__buy">
+            <span class="variety__price"><span class="vp">10</span> €</span>
+            <button class="btn btn--primary btn--sm vadd">Поръчай</button>
+          </div>
+        </div>
+      </article>
+      <article class="variety reveal" style="--c:#52b788">
+        <div class="variety__top"><img src="img/granny.jpg" alt="Грени Смит" loading="lazy" /></div>
+        <h3>Грени Смит</h3>
+        <p>Свежо кисела и стегната — класика за освежаващ вкус и за печене.</p>
+        <span class="variety__tag">Кисела · Свежа</span>
+        <div class="variety__order">
+          <div class="variety__weights">
+            <button class="vw active" data-kg="5">5 кг</button>
+            <button class="vw" data-kg="10">10 кг</button>
+            <button class="vw" data-kg="20">20 кг</button>
+          </div>
+          <div class="variety__buy">
+            <span class="variety__price"><span class="vp">10</span> €</span>
+            <button class="btn btn--primary btn--sm vadd">Поръчай</button>
+          </div>
+        </div>
+      </article>
+      <article class="variety reveal" style="--c:#e9b949">
+        <div class="variety__top"><img src="img/golden.jpg" alt="Златна превъзходна" loading="lazy" /></div>
+        <h3>Златна превъзходна</h3>
+        <p>Мека сладост и нежен аромат, със златиста кожа. Универсален любимец.</p>
+        <span class="variety__tag">Сладка · Нежна</span>
+        <div class="variety__order">
+          <div class="variety__weights">
+            <button class="vw active" data-kg="5">5 кг</button>
+            <button class="vw" data-kg="10">10 кг</button>
+            <button class="vw" data-kg="20">20 кг</button>
+          </div>
+          <div class="variety__buy">
+            <span class="variety__price"><span class="vp">10</span> €</span>
+            <button class="btn btn--primary btn--sm vadd">Поръчай</button>
+          </div>
+        </div>
+      </article>
+      <article class="variety reveal" style="--c:#b5651d">
+        <div class="variety__top"><img src="img/florina.jpg" alt="Флорина" loading="lazy" /></div>
+        <h3>Флорина</h3>
+        <p>Наситен цвят и устойчив, богат вкус. Отлично се съхранява през сезона.</p>
+        <span class="variety__tag">Богата · Трайна</span>
+        <div class="variety__order">
+          <div class="variety__weights">
+            <button class="vw active" data-kg="5">5 кг</button>
+            <button class="vw" data-kg="10">10 кг</button>
+            <button class="vw" data-kg="20">20 кг</button>
+          </div>
+          <div class="variety__buy">
+            <span class="variety__price"><span class="vp">10</span> €</span>
+            <button class="btn btn--primary btn--sm vadd">Поръчай</button>
+          </div>
+        </div>
+      </article>
+      <article class="variety variety--cta reveal">
+        <h3>Не знаете кой да изберете?</h3>
+        <p>Поръчайте микс от сортове и открийте своя фаворит.</p>
+        <a href="#shop" class="btn btn--primary btn--sm">Поръчай сега</a>
+      </article>
+    </div>
+  </section>
+
+  <!-- ===== SHOP ===== -->
+  <section class="shop" id="shop">
+    <div class="section-head reveal">
+      <span class="kicker">Магазин</span>
+      <h2>Поръчайте директно от фермата</h2>
+      <p class="section-head__sub">Свежи ябълки на килограм и нашият 100% натурален ябълков сок.</p>
+    </div>
+
+    <div class="shop__grid">
+
+      <!-- Apples product -->
+      <article class="product reveal">
+        <div class="product__media product__media--apples">
+          <img src="img/mix.jpg" alt="Микс от свежи ябълки" loading="lazy" />
+          <span class="product__badge">2 € / кг</span>
+        </div>
+        <div class="product__body">
+          <h3 class="product__title">Свежи ябълки — микс</h3>
+          <p class="product__desc">Микс от нашите сортове, брани в зрялост. Изберете количество.</p>
+
+          <div class="product__options" id="appleWeights">
+            <button class="weight active" data-kg="5">5 кг<span>10 €</span></button>
+            <button class="weight" data-kg="10">10 кг<span>20 €</span></button>
+            <button class="weight" data-kg="20">20 кг<span>40 €</span></button>
+          </div>
+
+          <div class="product__foot">
+            <div class="product__price"><span id="appleTotal">10</span> €</div>
+            <button class="btn btn--primary" id="addApples">Добави в кошницата</button>
+          </div>
+        </div>
+      </article>
+
+      <!-- Juice product -->
+      <article class="product reveal">
+        <div class="product__media product__media--juice">
+          <img src="img/juice.jpg" alt="Натурален ябълков сок" loading="lazy" />
+          <span class="product__badge">Бестселър</span>
+        </div>
+        <div class="product__body">
+          <h3 class="product__title">Натурален ябълков сок</h3>
+          <p class="product__desc">100% натурален, без добавена захар и консерванти. Цялата свежест на зрелите ябълки.</p>
+
+          <div class="product__options">
+            <div class="qty" id="juiceQty">
+              <button data-act="dec" aria-label="По-малко">−</button>
+              <span id="juiceCount">1</span>
+              <button data-act="inc" aria-label="Повече">+</button>
+            </div>
+            <span class="product__unit">бр. × 10 €</span>
+          </div>
+
+          <div class="product__foot">
+            <div class="product__price"><span id="juiceTotal">10</span> €</div>
+            <button class="btn btn--primary" id="addJuice">Добави в кошницата</button>
+          </div>
+        </div>
+      </article>
+
+    </div>
+  </section>
+
+  <!-- ===== BLOG ===== -->
+  <section class="blog" id="blog">
+    <div class="section-head reveal">
+      <span class="kicker">Блог</span>
+      <h2>Светът на ябълките</h2>
+      <p class="section-head__sub">Полезни статии за сортовете, здравето и кулинарията.</p>
+    </div>
+    <div class="blog__grid" id="blogGrid"><!-- injected by JS --></div>
+  </section>
+
+  <!-- ===== CONTACT / CTA ===== -->
+  <section class="contact" id="contact">
+    <div class="contact__card reveal">
+      <div class="contact__text">
+        <span class="kicker">Свържете се с нас</span>
+        <h2>Имате въпрос или по-голяма поръчка?</h2>
+        <p>Пишете ни — отговаряме бързо и с удоволствие ще ви помогнем да изберете.</p>
+        <ul class="contact__list">
+          <li>📍 с. Умаревци, България</li>
+          <li>✉️ info@umarevska-yabalka.bg</li>
+          <li>📞 +359 88 000 0000</li>
+        </ul>
+      </div>
+      <form class="contact__form" onsubmit="return umFakeSubmit(event)">
+        <input type="text" placeholder="Вашето име" required />
+        <input type="email" placeholder="Имейл" required />
+        <textarea placeholder="Съобщение" rows="4" required></textarea>
+        <button type="submit" class="btn btn--primary">Изпрати</button>
+      </form>
+    </div>
+  </section>
+
+  <!-- ===== FOOTER ===== -->
+  <footer class="footer">
+    <div class="footer__inner">
+      <div class="brand brand--footer">
+        <img src="img/logo.png" alt="Умаревска Ябълка" class="brand__logo brand__logo--footer" />
+        <span class="brand__text">Умаревска<strong>Ябълка</strong></span>
+      </div>
+      <p class="footer__tag">Натурални ябълки и сок от сърцето на село Умаревци.</p>
+      <div class="footer__links">
+        <a href="#story">За нас</a>
+        <a href="#varieties">Сортове</a>
+        <a href="#shop">Магазин</a>
+        <a href="#blog">Блог</a>
+        <a href="#contact">Контакти</a>
+      </div>
+    </div>
+    <div class="footer__bar">© <span id="year"></span> Умаревска Ябълка. Всички права запазени.</div>
+  </footer>
+
+  <!-- ===== CART DRAWER ===== -->
+  <div class="cart-backdrop" id="cartBackdrop"></div>
+  <aside class="cart" id="cart" aria-hidden="true">
+    <div class="cart__head">
+      <h3>Вашата кошница</h3>
+      <button class="cart__close" id="cartClose" aria-label="Затвори">✕</button>
+    </div>
+    <div class="cart__items" id="cartItems"></div>
+    <div class="cart__empty" id="cartEmpty">
+      <span>🛒</span>
+      <p>Кошницата е празна</p>
+      <a href="#shop" class="btn btn--ghost btn--sm" id="cartShopLink">Към магазина</a>
+    </div>
+    <div class="cart__foot">
+      <div class="cart__total"><span>Общо</span><strong><span id="cartTotal">0</span> €</strong></div>
+      <button class="btn btn--primary cart__checkout" id="checkout">Завърши поръчката</button>
+    </div>
+  </aside>
+
+  <!-- ===== BLOG MODAL ===== -->
+  <div class="modal" id="articleModal" aria-hidden="true">
+    <div class="modal__backdrop" id="modalBackdrop"></div>
+    <article class="modal__panel">
+      <button class="modal__close" id="modalClose" aria-label="Затвори">✕</button>
+      <div class="modal__body" id="modalBody"></div>
+    </article>
+  </div>
+
+  <!-- ===== ORDER CONFIRM ===== -->
+  <div class="modal" id="orderModal" aria-hidden="true">
+    <div class="modal__backdrop" id="orderBackdrop"></div>
+    <div class="modal__panel modal__panel--order">
+      <div class="order-done">
+        <span class="order-done__check">✓</span>
+        <h3>Благодарим за поръчката!</h3>
+        <p>Получихме вашата заявка. Наш екип ще се свърже с вас за потвърждение и доставка.</p>
+        <button class="btn btn--primary" id="orderOk">Продължи</button>
+      </div>
+    </div>
+  </div>
+
+  <script src="script.js"></script>
+</body>
+</html>

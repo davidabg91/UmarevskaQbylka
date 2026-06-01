@@ -1,0 +1,14 @@
+# OS
+Thumbs.db
+.DS_Store
+
+# Editor / tooling
+.vscode/
+.idea/
+
+# Claude Code preview config (local only)
+.claude/
+
+# Helper images downloaded during dev (test artifacts)
+img/_test.jpg
+img/_try_*.jpg
