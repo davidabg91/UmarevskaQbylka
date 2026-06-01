@@ -20,6 +20,43 @@
   var metaDesc = document.querySelector('meta[name="description"]');
   if (metaDesc) metaDesc.setAttribute('content', a.excerpt);
 
+  // Dynamic social metadata updates
+  var ogTitle = document.querySelector('meta[property="og:title"]');
+  if (ogTitle) ogTitle.setAttribute('content', a.title + ' — Умаревска Ябълка');
+  
+  var ogDesc = document.querySelector('meta[property="og:description"]');
+  if (ogDesc) ogDesc.setAttribute('content', a.excerpt);
+  
+  var ogImage = document.querySelector('meta[property="og:image"]');
+  if (ogImage) {
+    var absoluteImg = a.img;
+    if (absoluteImg && !absoluteImg.startsWith('http')) {
+      absoluteImg = window.location.origin + window.location.pathname.substring(0, window.location.pathname.lastIndexOf('/')) + '/' + absoluteImg;
+    }
+    ogImage.setAttribute('content', absoluteImg);
+  }
+  
+  var ogUrl = document.querySelector('meta[property="og:url"]');
+  if (ogUrl) ogUrl.setAttribute('content', window.location.href);
+
+  var twTitle = document.querySelector('meta[property="twitter:title"]');
+  if (twTitle) twTitle.setAttribute('content', a.title + ' — Умаревска Ябълка');
+  
+  var twDesc = document.querySelector('meta[property="twitter:description"]');
+  if (twDesc) twDesc.setAttribute('content', a.excerpt);
+  
+  var twImage = document.querySelector('meta[property="twitter:image"]');
+  if (twImage) {
+    var absoluteImg = a.img;
+    if (absoluteImg && !absoluteImg.startsWith('http')) {
+      absoluteImg = window.location.origin + window.location.pathname.substring(0, window.location.pathname.lastIndexOf('/')) + '/' + absoluteImg;
+    }
+    twImage.setAttribute('content', absoluteImg);
+  }
+  
+  var twUrl = document.querySelector('meta[property="twitter:url"]');
+  if (twUrl) twUrl.setAttribute('content', window.location.href);
+
   root.innerHTML =
     '<a href="index.html#blog" class="article__back">← Обратно към блога</a>' +
     '<div class="article__head">' +
