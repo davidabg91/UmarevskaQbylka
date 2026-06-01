@@ -1,0 +1,109 @@
+<!DOCTYPE html>
+<html lang="bg">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Статия — Умаревска Ябълка</title>
+  <meta name="description" content="Блог на Умаревска Ябълка — статии за сортове, здраве, продукти и кулинария." />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&family=Playfair+Display:ital,wght@0,500;0,600;0,700;1,500&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="styles.css?v=3" />
+  <link rel="icon" href="img/logo.png" />
+</head>
+<body class="article-page">
+
+  <!-- ===== NAV ===== -->
+  <header class="nav nav--solid scrolled" id="nav">
+    <div class="nav__inner">
+      <a href="index.html" class="brand">
+        <img src="img/logo.png" alt="Умаревска Ябълка" class="brand__logo" />
+        <span class="brand__text">Умаревска<strong>Ябълка</strong></span>
+      </a>
+      <nav class="nav__links" id="navLinks">
+        <a href="index.html#story">За нас</a>
+        <a href="index.html#varieties">Сортове</a>
+        <a href="index.html#shop">Магазин</a>
+        <a href="index.html#blog">Блог</a>
+        <a href="index.html#contact">Контакти</a>
+      </nav>
+      <div class="nav__actions">
+        <button class="cart-btn" id="cartToggle" aria-label="Кошница">
+          <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="21" r="1"/><circle cx="20" cy="21" r="1"/><path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"/></svg>
+          <span class="cart-btn__count" id="cartCount">0</span>
+        </button>
+        <button class="nav__burger" id="burger" aria-label="Меню"><span></span><span></span><span></span></button>
+      </div>
+    </div>
+  </header>
+
+  <!-- ===== ARTICLE ===== -->
+  <main class="article" id="articleRoot">
+    <!-- injected by JS -->
+  </main>
+
+  <!-- ===== MORE ARTICLES ===== -->
+  <section class="more">
+    <div class="more__head">
+      <span class="kicker">Още от блога</span>
+      <h2>Прочетете също</h2>
+    </div>
+    <div class="more__grid" id="moreGrid"><!-- injected by JS --></div>
+  </section>
+
+  <!-- ===== FOOTER ===== -->
+  <footer class="footer">
+    <div class="footer__inner">
+      <div class="brand brand--footer">
+        <img src="img/logo.png" alt="Умаревска Ябълка" class="brand__logo brand__logo--footer" />
+        <span class="brand__text">Умаревска<strong>Ябълка</strong></span>
+      </div>
+      <p class="footer__tag">Натурални ябълки и сок от сърцето на село Умаревци.</p>
+      <div class="footer__links">
+        <a href="index.html#story">За нас</a>
+        <a href="index.html#varieties">Сортове</a>
+        <a href="index.html#shop">Магазин</a>
+        <a href="index.html#blog">Блог</a>
+        <a href="index.html#contact">Контакти</a>
+      </div>
+    </div>
+    <div class="footer__bar">© <span id="year"></span> Умаревска Ябълка. Всички права запазени.</div>
+  </footer>
+
+  <!-- ===== CART DRAWER ===== -->
+  <div class="cart-backdrop" id="cartBackdrop"></div>
+  <aside class="cart" id="cart" aria-hidden="true">
+    <div class="cart__head">
+      <h3>Вашата кошница</h3>
+      <button class="cart__close" id="cartClose" aria-label="Затвори">✕</button>
+    </div>
+    <div class="cart__items" id="cartItems"></div>
+    <div class="cart__empty" id="cartEmpty">
+      <span>🛒</span>
+      <p>Кошницата е празна</p>
+      <a href="index.html#shop" class="btn btn--ghost btn--sm" id="cartShopLink">Към магазина</a>
+    </div>
+    <div class="cart__foot">
+      <div class="cart__total"><span>Общо</span><strong><span id="cartTotal">0</span> €</strong></div>
+      <button class="btn btn--primary cart__checkout" id="checkout">Завърши поръчката</button>
+    </div>
+  </aside>
+
+  <!-- ===== ORDER CONFIRM ===== -->
+  <div class="modal" id="orderModal" aria-hidden="true">
+    <div class="modal__backdrop" id="orderBackdrop"></div>
+    <div class="modal__panel modal__panel--order">
+      <div class="order-done">
+        <span class="order-done__check">✓</span>
+        <h3>Благодарим за поръчката!</h3>
+        <p>Получихме вашата заявка. Наш екип ще се свърже с вас за потвърждение и доставка.</p>
+        <button class="btn btn--primary" id="orderOk">Продължи</button>
+      </div>
+    </div>
+  </div>
+
+  <script src="articles.js?v=3"></script>
+  <script src="article.js?v=3"></script>
+  <script src="script.js?v=3"></script>
+</body>
+</html>
