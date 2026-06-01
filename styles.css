@@ -492,20 +492,20 @@ body.loading {
 
 .preloader__apple,
 .preloader__logo {
-  width: 85px;
-  height: 85px;
+  width: 160px;
+  height: 160px;
   object-fit: contain;
   animation: applePulse 2s infinite ease-in-out;
 }
 
 @keyframes applePulse {
   0%, 100% {
-    transform: scale(0.95);
-    filter: drop-shadow(0 4px 6px rgba(193, 39, 45, 0.15));
+    transform: scale(0.96);
+    filter: drop-shadow(0 8px 16px rgba(193, 39, 45, 0.12));
   }
   50% {
-    transform: scale(1.05);
-    filter: drop-shadow(0 12px 24px rgba(193, 39, 45, 0.35));
+    transform: scale(1.04);
+    filter: drop-shadow(0 20px 40px rgba(193, 39, 45, 0.28));
   }
 }
 
