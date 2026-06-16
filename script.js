@@ -9,6 +9,7 @@
   function removePreloader() {
     if (loaded) return;
     loaded = true;
+    document.dispatchEvent(new Event('preloaderDone'));
     if (preloader) {
       preloader.classList.add('fade-out');
       document.body.classList.remove('loading');
@@ -331,3 +332,114 @@ window.umFakeSubmit = umFakeSubmit;
 
 /* init */
 renderCart();
+
+/* ---------- PARALLAX HERO ---------- */
+(function(){
+  var vid = document.querySelector('.hero__video');
+  var ovl = document.querySelector('.hero__overlay');
+  var cnt = document.querySelector('.hero__content');
+  if (!vid) return;
+  var ticking = false;
+  window.addEventListener('scroll', function(){
+    if (ticking) return;
+    ticking = true;
+    requestAnimationFrame(function(){
+      var y = window.scrollY;
+      var h = window.innerHeight;
+      if (y < h) {
+        var tf = 'translateY(' + (y * 0.38) + 'px)';
+        vid.style.transform = tf;
+        ovl.style.transform = tf;
+        cnt.style.transform = 'translateY(' + (y * 0.11) + 'px)';
+      }
+      ticking = false;
+    });
+  });
+})();
+
+/* ---------- COUNTER ANIMATION ---------- */
+(function(){
+  var statsEl = document.querySelector('.story__stats');
+  if (!statsEl) return;
+  var done = false;
+  new IntersectionObserver(function(entries){
+    if (!entries[0].isIntersecting || done) return;
+    done = true;
+    statsEl.querySelectorAll('strong').forEach(function(el){
+      var raw = el.textContent.trim();
+      var num = parseInt(raw, 10);
+      var suffix = raw.replace(/[0-9]/g, '');
+      if (!num) return;
+      var t0 = null, dur = 1400;
+      (function tick(ts){
+        if (!t0) t0 = ts;
+        var p = Math.min((ts - t0) / dur, 1);
+        var e = 1 - Math.pow(1 - p, 3);
+        el.textContent = Math.round(e * num) + suffix;
+        if (p < 1) requestAnimationFrame(tick);
+      })(performance.now());
+    });
+  }, {threshold: 0.6}).observe(statsEl);
+})();
+
+/* ---------- SUBSCRIBE MODAL ---------- */
+(function(){
+  var modal = document.getElementById('subModal');
+  if (!modal) return;
+  var backdrop = document.getElementById('subModalBackdrop');
+  var closeBtn = document.getElementById('subModalClose');
+  var form = document.getElementById('subForm');
+  var success = document.getElementById('subSuccess');
+  var planName = document.getElementById('subModalPlanName');
+  var planPrice = document.getElementById('subModalPrice');
+  var planTotal = document.getElementById('subModalTotalPrice');
+  var planInput = document.getElementById('subPlanInput');
+  var successOk = document.getElementById('subSuccessOk');
+
+  function openModal(plan, price, kg) {
+    if (planName) planName.textContent = plan;
+    if (planPrice) planPrice.textContent = price;
+    if (planTotal) planTotal.textContent = price;
+    if (planInput) planInput.value = plan;
+    form.style.display = '';
+    success.style.display = 'none';
+    form.reset();
+    modal.classList.add('open');
+    modal.setAttribute('aria-hidden', 'false');
+    document.body.style.overflow = 'hidden';
+  }
+  function closeModal() {
+    modal.classList.remove('open');
+    modal.setAttribute('aria-hidden', 'true');
+    document.body.style.overflow = '';
+  }
+
+  document.querySelectorAll('.sub__btn').forEach(function(btn) {
+    btn.addEventListener('click', function() {
+      openModal(btn.dataset.plan, btn.dataset.price, btn.dataset.kg);
+    });
+  });
+
+  if (closeBtn) closeBtn.addEventListener('click', closeModal);
+  if (backdrop) backdrop.addEventListener('click', closeModal);
+  if (successOk) successOk.addEventListener('click', closeModal);
+  document.addEventListener('keydown', function(e) {
+    if (e.key === 'Escape' && modal.classList.contains('open')) closeModal();
+  });
+
+  if (form) {
+    form.addEventListener('submit', function(e) {
+      e.preventDefault();
+      form.style.display = 'none';
+      success.style.display = 'flex';
+    });
+  }
+})();
+
+/* ---------- CALENDAR CURRENT MONTH ---------- */
+(function(){
+  var m = new Date().getMonth() + 1;
+  document.querySelectorAll('.cal__months span[data-m]').forEach(function(s){
+    if (+s.dataset.m === m) s.classList.add('cal__now');
+  });
+})();

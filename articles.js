@@ -21,6 +21,53 @@ window.ARTICLES = [
       <h3>Флорина</h3>
       <p>Наситен цвят и богат вкус, който се запазва дълго. Отличен избор за съхранение през по-студените месеци.</p>
       <p><strong>Съвет:</strong> Ако не можете да изберете — поръчайте микс и открийте своя фаворит.</p>
+      <h3>Бърза сравнителна таблица</h3>
+      <div class="cmp__wrap" style="margin:1.5rem 0">
+        <div class="cmp__scroll">
+          <table class="cmp__table">
+            <thead>
+              <tr>
+                <th class="cmp__th-label"></th>
+                <th><span class="cmp__dot" style="--c:#c1272d"></span>Фуджи</th>
+                <th><span class="cmp__dot" style="--c:#e07a5f"></span>Пинова</th>
+                <th><span class="cmp__dot" style="--c:#52b788"></span>Грени Смит</th>
+                <th><span class="cmp__dot" style="--c:#e9b949"></span>Златна</th>
+                <th><span class="cmp__dot" style="--c:#b5651d"></span>Флорина</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td class="cmp__label">Вкус</td>
+                <td>Сладък</td><td>Балансиран</td><td>Кисел</td><td>Сладък</td><td>Богат</td>
+              </tr>
+              <tr>
+                <td class="cmp__label">Текстура</td>
+                <td>Хрупкава</td><td>Хрупкава</td><td>Стегната</td><td>Мека</td><td>Плътна</td>
+              </tr>
+              <tr>
+                <td class="cmp__label">Употреба</td>
+                <td>Прясно</td><td>Прясно / Сок</td><td>Сок / Готвене</td><td>Прясно</td><td>Прясно</td>
+              </tr>
+              <tr>
+                <td class="cmp__label">За ядене</td>
+                <td class="cmp__stars">★★★★★</td><td class="cmp__stars">★★★★</td><td class="cmp__stars">★★★</td><td class="cmp__stars">★★★★</td><td class="cmp__stars">★★★★</td>
+              </tr>
+              <tr>
+                <td class="cmp__label">За сок</td>
+                <td class="cmp__stars">★★★</td><td class="cmp__stars">★★★★</td><td class="cmp__stars">★★★★★</td><td class="cmp__stars">★★★</td><td class="cmp__stars">★★</td>
+              </tr>
+              <tr>
+                <td class="cmp__label">За печене</td>
+                <td class="cmp__stars">★★</td><td class="cmp__stars">★★★</td><td class="cmp__stars">★★★★★</td><td class="cmp__stars">★★★★</td><td class="cmp__stars">★★★</td>
+              </tr>
+              <tr>
+                <td class="cmp__label">Сезон</td>
+                <td>Окт – Мар</td><td>Сеп – Дек</td><td>Окт – Фев</td><td>Авг – Ное</td><td>Окт – Яну</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
     `,
     ctaTitle: 'Открийте своя любим сорт',
     ctaText: 'Поръчайте микс от петте ни сорта или изберете отделен сорт по килограм — брани в зрялост, директно от фермата.'
