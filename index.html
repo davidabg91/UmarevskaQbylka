@@ -116,22 +116,30 @@
   <section class="values">
     <div class="values__grid">
       <article class="value reveal">
-        <span class="value__icon">🌳</span>
+        <span class="value__icon">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22V12"/><path d="M12 12C12 7 7 3 3 5c0 5 4 9 9 7"/><path d="M12 12C12 7 17 3 21 5c0 5-4 9-9 7"/></svg>
+        </span>
         <h3>Отгледани с грижа</h3>
         <p>Всяко дърво получава внимание през целия сезон, за да даде здрави и сочни плодове.</p>
       </article>
       <article class="value reveal">
-        <span class="value__icon">⏱️</span>
+        <span class="value__icon">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+        </span>
         <h3>Брани в зрялост</h3>
         <p>Берем в точния момент, за да запазим максимума от вкус, аромат и хранителни стойности.</p>
       </article>
       <article class="value reveal">
-        <span class="value__icon">🧃</span>
+        <span class="value__icon">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2C6 9 4 13 4 16a8 8 0 0 0 16 0c0-3-2-7-8-14z"/></svg>
+        </span>
         <h3>Сок без компромис</h3>
         <p>100% натурален ябълков сок, без добавена захар, концентрати или консерванти.</p>
       </article>
       <article class="value reveal">
-        <span class="value__icon">🚜</span>
+        <span class="value__icon">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
+        </span>
         <h3>Директно от фермата</h3>
         <p>От нашата градина до вашия дом — свежест, на която можете да се доверите.</p>
       </article>
@@ -270,7 +278,7 @@
       </article>
 
       <!-- 7. Natural Juice (Featured) -->
-      <article class="variety variety--featured reveal" style="--c:#2d6a4f" data-category="mix-juice">
+      <article class="variety variety--featured reveal" style="--c:#e9b949" data-category="mix-juice">
         <div class="variety__top variety__top--juice"><img src="img/juice.jpg" alt="Натурален ябълков сок" loading="lazy" /></div>
         <div class="variety__content">
           <div class="variety__header-group">
@@ -568,7 +576,11 @@
       </div>
       <form class="contact__form" onsubmit="return umFakeSubmit(event)">
         <input type="text" placeholder="Вашето име" required />
-        <input type="email" placeholder="Имейл" required />
+        <div class="contact__form-row">
+          <input type="tel" placeholder="Телефон" />
+          <input type="email" placeholder="Имейл" />
+        </div>
+        <p class="contact__form-hint">Оставете телефон или имейл за обратна връзка</p>
         <textarea placeholder="Съобщение" rows="4" required></textarea>
         <button type="submit" class="btn btn--primary">Изпрати</button>
       </form>
