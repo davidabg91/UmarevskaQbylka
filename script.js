@@ -366,63 +366,208 @@ const PICKUPS = ['с. Умаревци (обект 1)', 'с. Брестовец,
 const escHtml = s => String(s == null ? '' : s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 const orderCode = () => 'UY-' + Math.random().toString(36).slice(2, 7).toUpperCase();
 
+/* --- куриери ---
+   Еконт: офисите, населените места и цената идват на живо от официалния им публичен интерфейс (без ключ).
+   Спиди и Pigeon Express дават тези данни само с договор и ключ, затова при тях офисът се описва с думи. */
+const COURIERS = { econt: 'Еконт', speedy: 'Спиди', pigeon: 'Pigeon Express' };
+const ECONT = { base: 'https://ee.econt.com/services/', sender: (window.UM_CONFIG && UM_CONFIG.econtSenderOffice) || '5506', officesP: null, citiesP: null };
+function econtCall(path, body) {
+  return fetch(ECONT.base + path, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) })
+    .then(r => { if (!r.ok) throw new Error('econt ' + r.status); return r.json(); });
+}
+function econtOffices() {
+  if (!ECONT.officesP) ECONT.officesP = econtCall('Nomenclatures/NomenclaturesService.getOffices.json', { countryCode: 'BGR' })
+    .then(d => (d.offices || []).filter(o => !o.isMPS && o.address && o.address.city && o.address.city.name)
+      .map(o => ({ code: String(o.code), name: o.name, aps: !!o.isAPS, city: o.address.city.name, addr: String(o.address.fullAddress || '').trim() })))
+    .catch(e => { ECONT.officesP = null; throw e; });
+  return ECONT.officesP;
+}
+function econtCities() {
+  if (!ECONT.citiesP) ECONT.citiesP = econtCall('Nomenclatures/NomenclaturesService.getCities.json', { countryCode: 'BGR' })
+    .then(d => (d.cities || []).filter(c => c.name && c.postCode).map(c => ({ name: c.name, post: String(c.postCode), region: c.regionName || '' })))
+    .catch(e => { ECONT.citiesP = null; throw e; });
+  return ECONT.citiesP;
+}
+function econtQuote(weight, receiver) {
+  return econtCall('Shipments/LabelService.createLabel.json', { mode: 'calculate',
+    label: Object.assign({ senderOfficeCode: ECONT.sender, packCount: 1, shipmentType: 'PACK', weight: weight, shipmentDescription: 'Ябълки' }, receiver) })
+    .then(d => (d.label && typeof d.label.totalPrice === 'number' && d.label.currency === 'EUR') ? d.label.totalPrice : null);
+}
+/* тегло на пратката: килограмите ябълки + ~3,3 кг за всяка кутия сок */
+function cartWeight() {
+  const kg = cart.reduce((s, i) => {
+    if (i.type === 'juice') return s + 3.3 * i.qty;
+    const m = /(\d+(?:[.,]\d+)?)\s*кг/.exec(i.meta || '');
+    return s + (m ? parseFloat(m[1].replace(',', '.')) : 1) * i.qty;
+  }, 0);
+  return Math.max(1, Math.round(kg * 10) / 10);
+}
+const normCity = s => String(s || '').trim().toLowerCase().replace(/^(гр\.|с\.|град|село)\s*/, '');
+const fmtEur = n => (Math.round(n * 100) / 100).toFixed(2).replace('.', ',').replace(/,00$/, '') + ' €';
+
 function renderOrderForm() {
   const snap = cartSnapshot();
+  const weight = cartWeight();
   orderPanel.classList.add('modal__panel--form');
   orderPanel.innerHTML = `
     <button class="modal__close" type="button" data-order-close aria-label="Затвори">✕</button>
     <form class="sub-modal__form order-form" id="orderForm">
       <h3>Завършване на поръчката</h3>
-      <p>Оставете данни за връзка — ще ви се обадим за потвърждение и уточняване на доставката.</p>
+      <p>Оставете данни за връзка — ще ви се обадим за потвърждение.</p>
       <ul class="order-form__items">
         ${cart.map(i => `<li><span>${escHtml(i.name)} <small>${escHtml(i.meta.split(' · ')[0])} × ${i.qty}</small></span><b>${i.qty * i.unitPrice} €</b></li>`).join('')}
-        <li class="order-form__sum"><span>Общо</span><b>${snap.total} €</b></li>
+        <li class="order-form__sum"><span>Стоки</span><b>${snap.total} €</b></li>
       </ul>
       <div class="sub-modal__row">
         <input type="text" name="name" placeholder="Име и фамилия" aria-label="Име и фамилия" autocomplete="name" minlength="2" maxlength="120" required />
         <input type="tel" name="phone" placeholder="Телефон" aria-label="Телефон" autocomplete="tel" minlength="5" maxlength="40" required />
       </div>
       <input type="email" name="email" placeholder="Имейл (по желание)" aria-label="Имейл" autocomplete="email" maxlength="160" />
-      <div class="order-form__switch" role="radiogroup" aria-label="Начин на получаване">
-        <label><input type="radio" name="delivery" value="address" checked /><span>Доставка до адрес</span></label>
-        <label><input type="radio" name="delivery" value="pickup" /><span>Вземане от обект</span></label>
+
+      <span class="order-form__label">Как да получите поръчката</span>
+      <div class="order-form__switch order-form__switch--3" role="radiogroup" aria-label="Начин на получаване">
+        <label><input type="radio" name="delivery" value="office" checked /><span>До офис на куриер</span></label>
+        <label><input type="radio" name="delivery" value="address" /><span>До адрес</span></label>
+        <label><input type="radio" name="delivery" value="pickup" /><span>От наш обект</span></label>
       </div>
-      <textarea name="address" rows="2" placeholder="Адрес за доставка (град, улица, №)" aria-label="Адрес за доставка" autocomplete="street-address" maxlength="400" required></textarea>
-      <select name="pickup" aria-label="Обект за вземане" hidden>
+
+      <div data-block="couriers">
+        <span class="order-form__label">Куриер</span>
+        <div class="order-form__switch order-form__switch--3" role="radiogroup" aria-label="Куриер">
+          ${Object.keys(COURIERS).map((k, n) => `<label><input type="radio" name="courier" value="${k}"${n ? '' : ' checked'} /><span>${escHtml(COURIERS[k])}</span></label>`).join('')}
+        </div>
+      </div>
+
+      <div data-block="econt-office" class="order-form__group">
+        <input type="text" name="ecity" list="orderEcontCities" placeholder="Населено място (започнете да пишете)" aria-label="Населено място" autocomplete="off" maxlength="120" />
+        <datalist id="orderEcontCities"></datalist>
+        <select name="eoffice" aria-label="Офис или еконтомат"><option value="">Първо изберете населено място</option></select>
+      </div>
+      <div data-block="free-office" class="order-form__group">
+        <input type="text" name="fcity" placeholder="Населено място" aria-label="Населено място" autocomplete="address-level2" maxlength="120" />
+        <input type="text" name="foffice" placeholder="Офис — име или адрес на офиса" aria-label="Офис" maxlength="280" />
+      </div>
+      <div data-block="address" class="order-form__group">
+        <input type="text" name="acity" list="orderAddrCities" placeholder="Населено място" aria-label="Населено място" autocomplete="address-level2" maxlength="120" />
+        <datalist id="orderAddrCities"></datalist>
+        <textarea name="address" rows="2" placeholder="Улица, №, блок, вход, етаж, апартамент" aria-label="Адрес за доставка" autocomplete="street-address" maxlength="380"></textarea>
+      </div>
+      <select name="pickup" data-block="pickup" aria-label="Обект за вземане">
         ${PICKUPS.map(p => `<option>${escHtml(p)}</option>`).join('')}
       </select>
+
+      <p class="order-form__ship" role="status" aria-live="polite"></p>
       <textarea name="note" rows="2" placeholder="Бележка към поръчката (по желание)" aria-label="Бележка" maxlength="1000"></textarea>
       <input type="text" name="website" class="order-form__hp" tabindex="-1" autocomplete="off" aria-hidden="true" />
       <p class="order-form__error" role="alert" hidden></p>
       <div class="sub-modal__pay-row">
-        <div class="sub-modal__total">Общо: <strong>${snap.total} €</strong></div>
+        <div class="sub-modal__total"><span data-total-label>Общо</span>: <strong data-total>${snap.total} €</strong></div>
         <button type="submit" class="btn btn--primary sub-modal__pay-btn">Изпрати поръчката <svg class="ico"><use href="#i-arrow"/></svg></button>
       </div>
     </form>`;
   const form = orderPanel.querySelector('#orderForm');
   const err = form.querySelector('.order-form__error');
+  const shipEl = form.querySelector('.order-form__ship');
+  const totalEl = form.querySelector('[data-total]'), totalLabel = form.querySelector('[data-total-label]');
   const submitBtn = form.querySelector('button[type="submit"]');
-  const syncDelivery = () => {
-    const pickup = form.delivery.value === 'pickup';
-    form.address.hidden = pickup; form.address.required = !pickup;
-    form.pickup.hidden = !pickup;
-  };
-  form.querySelectorAll('input[name="delivery"]').forEach(r => r.addEventListener('change', syncDelivery));
+  const block = n => form.querySelector('[data-block="' + n + '"]');
+  const st = { price: null, token: 0, econtDown: false, offices: [], cityMap: new Map() };
+
+  function paint(text, price) {
+    st.price = typeof price === 'number' ? price : null;
+    shipEl.textContent = text;
+    shipEl.classList.toggle('is-price', st.price != null);
+    totalLabel.textContent = st.price != null ? 'Общо с доставката' : 'Общо';
+    totalEl.textContent = fmtEur(snap.total + (st.price || 0));
+  }
+  function quote() {
+    const my = ++st.token, delivery = form.delivery.value, courier = form.courier.value;
+    if (delivery === 'pickup') return paint('Вземате поръчката от наш обект — без разходи за доставка.');
+    if (courier !== 'econt' || st.econtDown) return paint('Цената на доставката ' + (courier === 'speedy' ? 'със ' : 'с ') + COURIERS[courier] + ' ще уточним при потвърждението.');
+    let receiver;
+    if (delivery === 'office') {
+      if (!form.eoffice.value) return paint('Изберете населено място и офис, за да видите цената на доставката.');
+      receiver = { receiverOfficeCode: form.eoffice.value };
+    } else {
+      const c = st.cityMap.get(normCity(form.acity.value));
+      if (!c) return paint(form.acity.value.trim() ? 'За това населено място цената на доставката ще уточним при потвърждението.' : 'Въведете населено място, за да видите цената на доставката.');
+      receiver = { receiverAddress: { city: { country: { code3: 'BGR' }, name: c.name, postCode: c.post } } };
+    }
+    paint('Изчисляваме доставката…');
+    econtQuote(weight, receiver).then(p => {
+      if (my !== st.token) return;
+      if (p == null) throw new Error('no price');
+      paint('Доставка с Еконт ' + (delivery === 'office' ? 'до офис' : 'до адрес') + ' за ' + String(weight).replace('.', ',') + ' кг: ' + fmtEur(p) + ' (по тарифата на Еконт)', p);
+    }).catch(() => { if (my === st.token) paint('Цената на доставката ще уточним при потвърждението.'); });
+  }
+  function fillOffices() {
+    const key = normCity(form.ecity.value);
+    const list = st.offices.filter(o => normCity(o.city) === key).sort((a, b) => (a.aps - b.aps) || a.name.localeCompare(b.name, 'bg'));
+    form.eoffice.innerHTML = list.length
+      ? '<option value="">Изберете офис или еконтомат (' + list.length + ')</option>' + list.map(o => `<option value="${escHtml(o.code)}">${o.aps ? 'Еконтомат: ' : ''}${escHtml(o.name)} — ${escHtml(o.addr)}</option>`).join('')
+      : '<option value="">' + (form.ecity.value.trim() ? 'Няма офис на Еконт в това населено място' : 'Първо изберете населено място') + '</option>';
+    quote();
+  }
+  function sync() {
+    const delivery = form.delivery.value, courier = form.courier.value, ship = delivery !== 'pickup';
+    const eOffice = ship && delivery === 'office' && courier === 'econt' && !st.econtDown;
+    const fOffice = ship && delivery === 'office' && !eOffice;
+    const addr = delivery === 'address';
+    block('couriers').hidden = !ship;
+    block('econt-office').hidden = !eOffice;
+    block('free-office').hidden = !fOffice;
+    block('address').hidden = !addr;
+    block('pickup').hidden = ship;
+    form.ecity.required = form.eoffice.required = eOffice;
+    form.fcity.required = form.foffice.required = fOffice;
+    form.acity.required = form.address.required = addr;
+    if (eOffice && !st.offices.length) {
+      econtOffices().then(list => {
+        st.offices = list;
+        const names = Array.from(new Set(list.map(o => o.city))).sort((a, b) => a.localeCompare(b, 'bg'));
+        form.querySelector('#orderEcontCities').innerHTML = names.map(n => `<option value="${escHtml(n)}"></option>`).join('');
+        fillOffices();
+      }).catch(() => { st.econtDown = true; sync(); });   /* ако Еконт не отговаря — офисът се описва с думи */
+    }
+    if (addr && courier === 'econt' && !st.econtDown && !st.cityMap.size) {
+      econtCities().then(list => {
+        list.forEach(c => { const k = normCity(c.name); if (!st.cityMap.has(k)) st.cityMap.set(k, c); });
+        form.querySelector('#orderAddrCities').innerHTML = Array.from(st.cityMap.values()).sort((a, b) => a.name.localeCompare(b.name, 'bg'))
+          .map(c => `<option value="${escHtml(c.name)}">${escHtml(c.region ? 'обл. ' + c.region : '')}</option>`).join('');
+        quote();
+      }).catch(() => {});
+    }
+    quote();
+  }
+  form.querySelectorAll('input[name="delivery"],input[name="courier"]').forEach(r => r.addEventListener('change', sync));
+  form.ecity.addEventListener('input', fillOffices);
+  form.eoffice.addEventListener('change', quote);
+  let cityT;
+  form.acity.addEventListener('input', () => { clearTimeout(cityT); cityT = setTimeout(quote, 350); });
   orderPanel.querySelector('[data-order-close]').addEventListener('click', () => closeModal(orderModal));
+  sync();
 
   form.addEventListener('submit', e => {
     e.preventDefault();
     if (form.website.value) { renderOrderDone(''); return; }      /* капан за ботове */
-    const pickup = form.delivery.value === 'pickup';
+    const delivery = form.delivery.value, courier = delivery === 'pickup' ? null : form.courier.value;
+    const eOffice = delivery === 'office' && courier === 'econt' && !st.econtDown;
+    const office = eOffice ? st.offices.find(o => o.code === form.eoffice.value) : null;
     const code = orderCode();
     const row = {
       code: code,
       customer_name: form.elements.name.value.trim(),
       phone: form.phone.value.trim(),
       email: form.email.value.trim() || null,
-      delivery: pickup ? 'pickup' : 'address',
-      address: pickup ? null : form.address.value.trim(),
-      pickup_place: pickup ? form.pickup.value : null,
+      delivery: delivery,
+      courier: courier,
+      city: delivery === 'pickup' ? null : (eOffice ? (office ? office.city : form.ecity.value.trim()) : delivery === 'office' ? form.fcity.value.trim() : form.acity.value.trim()) || null,
+      office_code: office ? office.code : null,
+      office_name: delivery !== 'office' ? null : office ? ((office.aps ? 'Еконтомат: ' : '') + office.name + ' — ' + office.addr).slice(0, 290) : form.foffice.value.trim().slice(0, 290),
+      address: delivery === 'address' ? form.address.value.trim() : null,
+      pickup_place: delivery === 'pickup' ? form.pickup.value : null,
+      delivery_price: delivery === 'pickup' ? 0 : st.price,
+      weight_kg: weight,
       note: form.note.value.trim() || null,
       items: cart.map(i => ({ id: i.id, name: i.name, meta: i.meta, qty: i.qty, price: i.unitPrice })),
       total: snap.total,
@@ -439,7 +584,7 @@ function renderOrderForm() {
         err.hidden = false;
         return;
       }
-      if (window.UMTrack) UMTrack.event('order', code, { total: row.total, items: row.items.length, delivery: row.delivery });
+      if (window.UMTrack) UMTrack.event('order', code, { total: row.total, items: row.items.length, delivery: row.delivery, courier: row.courier, ship: row.delivery_price });
       cart = []; saveCart(); renderCart();
       renderOrderDone(code);
     });

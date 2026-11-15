@@ -911,6 +911,12 @@ html.fx .preloader.fade-out{opacity:1;visibility:visible;transition:none;animati
 .order-form__switch input:focus-visible+span{outline:2.5px solid var(--gold);outline-offset:2px}
 .sub-modal__form .order-form__hp{position:absolute;left:-9999px;width:1px;height:1px;opacity:0;padding:0;border:0}
 .order-form__error{margin:0;padding:.8rem 1rem;border-radius:12px;font-size:.9rem;font-weight:600;color:#8f1d22;background:color-mix(in srgb,var(--red) 9%,#fff);border:1px solid color-mix(in srgb,var(--red) 30%,#fff)}
+.order-form__label{font-size:.72rem;font-weight:800;letter-spacing:.09em;text-transform:uppercase;color:var(--muted);margin:.35rem 0 -.3rem}
+.order-form__switch--3{grid-template-columns:repeat(3,1fr)}
+.order-form__switch--3 span{font-size:.84rem;padding:.7rem .3rem;line-height:1.2;height:100%;display:grid;place-items:center}
+.order-form__group{display:flex;flex-direction:column;gap:.8rem}
+.order-form__ship{margin:0;padding:.75rem 1rem;border-radius:12px;font-size:.9rem;font-weight:600;color:var(--muted);background:var(--cream-2)}
+.order-form__ship.is-price{color:var(--green-dk);background:color-mix(in srgb,var(--green-lt) 18%,#fff)}
 .order-form [hidden],.order-form__error[hidden]{display:none}
 .order-done__code{font-size:.95rem}
 .order-done__code strong{color:var(--ink);letter-spacing:.04em}

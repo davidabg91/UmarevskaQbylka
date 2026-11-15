@@ -24,6 +24,12 @@
     gallery: 'Галерия', media: 'В медиите', blog: 'Блог', locations: 'Обекти', contact: 'Контакти', footer: 'Футър', article: 'Статии от блога' };
   const DEVICES = { mobile: 'Телефон', tablet: 'Таблет', desktop: 'Компютър' };
   const TITLES = { home: 'Табло', orders: 'Поръчки', subs: 'Абонаменти', calendar: 'Доставки по абонаменти', messages: 'Запитвания', stats: 'Статистика', carts: 'Изоставени кошници' };
+  const COURIER = { econt: 'Еконт', speedy: 'Спиди', pigeon: 'Pigeon Express' };
+  /* как и къде се получава поръчката — с думи */
+  const deliveryText = o => o.delivery === 'pickup' ? 'Вземане от обект: ' + (o.pickup_place || '—')
+    : o.delivery === 'office' ? (COURIER[o.courier] || 'Куриер') + ' — до офис' + (o.city ? ', ' + o.city : '')
+    : (COURIER[o.courier] || 'Куриер') + ' — до адрес' + (o.city ? ', ' + o.city : '');
+  const shipText = o => o.delivery === 'pickup' ? 'няма' : o.delivery_price != null ? money(o.delivery_price) : 'уточнява се';
   const badge = (map, st) => { const m = map[st] || [st, 'off']; return `<span class="badge badge--${m[1]}">${esc(m[0])}</span>`; };
 
   const S = { view: 'home', range: 7, orders: [], subs: [], msgs: [], deliveries: [], events: [], stats: null,
@@ -33,6 +39,7 @@
   const loginEl = $('#login'), appEl = $('#app');
   function showLogin(msg) {
     appEl.hidden = true; loginEl.hidden = false;
+    paintInstall();
     $('#loginSub').textContent = D.mode === 'demo' ? 'Демо режим: влезте с произволен имейл и парола.'
       : D.mode === 'off' ? 'Базата данни още не е свързана (config.js).' : 'Влезте с имейла и паролата на собственика.';
     const e = $('#loginError'); e.hidden = !msg; e.textContent = msg || '';
@@ -86,8 +93,21 @@
   const isIOS = /iphone|ipad|ipod/i.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
   const isStandalone = () => (window.matchMedia && matchMedia('(display-mode: standalone)').matches) || navigator.standalone === true;
   let installEvt = null;
-  window.addEventListener('beforeinstallprompt', e => { e.preventDefault(); installEvt = e; if (!appEl.hidden) render(); });
-  window.addEventListener('appinstalled', () => { installEvt = null; if (!appEl.hidden) render(); });
+  window.addEventListener('beforeinstallprompt', e => { e.preventDefault(); installEvt = e; paintInstall(); if (!appEl.hidden) render(); });
+  window.addEventListener('appinstalled', () => { installEvt = null; paintInstall(); if (!appEl.hidden) render(); });
+  /* блокът „Инсталирай приложението“ на екрана за вход */
+  function paintInstall() {
+    const box = $('#installBox'); if (!box) return;
+    box.hidden = isStandalone();   /* вече е отворено като приложение */
+    $('#installBtn').textContent = installEvt ? 'Инсталирай приложението' : 'Как да инсталирам приложението';
+  }
+  $('#installBtn').addEventListener('click', () => {
+    if (installEvt) { const ev = installEvt; installEvt = null; ev.prompt(); if (ev.userChoice) ev.userChoice.then(paintInstall); return; }
+    const help = $('#installHelp');
+    $('#installIos').hidden = !isIOS; $('#installOther').hidden = isIOS;
+    help.hidden = !help.hidden;
+  });
+  if ('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js').catch(() => {});
   const keyBytes = s => Uint8Array.from(atob(s.replace(/-/g, '+').replace(/_/g, '/') + '==='.slice((s.length + 3) % 4)), c => c.charCodeAt(0));
   const saveSub = sub => { const j = sub.toJSON(); return D.adminInsert('push_subscriptions', { endpoint: j.endpoint, p256dh: j.keys.p256dh, auth: j.keys.auth, user_agent: navigator.userAgent.slice(0, 280) })
     .catch(err => { if (!(err && err.status === 409)) throw err; }); };   /* 409 = това устройство вече е записано */
@@ -340,7 +360,7 @@
     return `<div class="tablewrap"><table><thead><tr><th>Номер</th><th>Дата</th><th>Клиент</th><th>Продукти</th><th class="num">Сума</th><th>Статус</th></tr></thead><tbody>` +
       rows.map(o => `<tr class="rowlink" data-order="${esc(o.id)}" tabindex="0"><td class="mono">${esc(o.code)}</td><td>${esc(fmtDT(o.created_at))}</td>
         <td>${esc(o.customer_name)}<small>${esc(o.phone)}</small></td>
-        <td>${(o.items || []).map(i => esc(i.name) + ' × ' + esc(i.qty)).join('<br>')}</td>
+        <td>${(o.items || []).map(i => esc(i.name) + ' × ' + esc(i.qty)).join('<br>')}<small>${esc(deliveryText(o))}</small></td>
         <td class="num">${money(o.total)}</td><td>${badge(ORDER_ST, o.status)}</td></tr>`).join('') + '</tbody></table></div>';
   }
   function viewOrders() {
@@ -348,7 +368,7 @@
     S.orders.forEach(o => { counts[o.status] = (counts[o.status] || 0) + 1; });
     const q = S.orderSearch.trim().toLowerCase();
     const rows = S.orders.filter(o => (S.orderFilter === 'all' || o.status === S.orderFilter) &&
-      (!q || [o.code, o.customer_name, o.phone, o.email, o.address].join(' ').toLowerCase().includes(q)));
+      (!q || [o.code, o.customer_name, o.phone, o.email, o.address, o.city, o.office_name].join(' ').toLowerCase().includes(q)));
     return `<div class="card"><div class="bar" style="margin-bottom:1rem">
         <div class="chips">${[['all', 'Всички']].concat(Object.keys(ORDER_ST).map(k => [k, ORDER_ST[k][0]])).map(c =>
           `<button class="chip${S.orderFilter === c[0] ? ' active' : ''}" data-ofilter="${c[0]}">${esc(c[1])}<b>${num(counts[c[0]] || 0)}</b></button>`).join('')}</div>
@@ -482,11 +502,16 @@
     openDrawer(`<div class="drawer__head"><div><h2>Поръчка ${esc(o.code)}</h2><span class="note">${esc(fmtDT(o.created_at))}</span></div><button class="drawer__close" data-close-drawer aria-label="Затвори">✕</button></div>
       <div>${badge(ORDER_ST, o.status)}</div>
       <dl class="kv"><dt>Клиент</dt><dd>${esc(o.customer_name)}</dd><dt>Телефон</dt><dd>${esc(o.phone)}</dd>${o.email ? `<dt>Имейл</dt><dd>${esc(o.email)}</dd>` : ''}
-        <dt>Получаване</dt><dd>${o.delivery === 'pickup' ? 'Вземане от обект: ' + esc(o.pickup_place) : 'Доставка до адрес'}</dd>
-        ${o.delivery !== 'pickup' ? `<dt>Адрес</dt><dd>${esc(o.address || '—')}</dd>` : ''}${o.note ? `<dt>Бележка</dt><dd>${esc(o.note)}</dd>` : ''}</dl>
+        <dt>Получаване</dt><dd>${esc(deliveryText(o))}</dd>
+        ${o.delivery === 'office' ? `<dt>Офис</dt><dd>${esc(o.office_name || '—')}${o.office_code ? ' <span class="note">(код ' + esc(o.office_code) + ')</span>' : ''}</dd>` : ''}
+        ${o.delivery === 'address' ? `<dt>Адрес</dt><dd>${esc([o.city, o.address].filter(Boolean).join(', ') || '—')}</dd>` : ''}
+        ${o.weight_kg ? `<dt>Тегло</dt><dd>${esc(String(o.weight_kg).replace('.', ','))} кг</dd>` : ''}
+        <dt>Доставка</dt><dd>${esc(shipText(o))}</dd>${o.note ? `<dt>Бележка</dt><dd>${esc(o.note)}</dd>` : ''}</dl>
       ${contactBtns(o.phone, o.email)}
       <ul class="items">${(o.items || []).map(i => `<li><span>${esc(i.name)}<small>${esc(i.meta || '')} × ${esc(i.qty)}</small></span><b>${money((+i.price || 0) * (+i.qty || 1))}</b></li>`).join('')}
-        <li><span>Общо</span><b class="sum">${money(o.total)}</b></li></ul>
+        <li><span>Стоки</span><b>${money(o.total)}</b></li>
+        ${o.delivery_price ? `<li><span>Доставка</span><b>${money(o.delivery_price)}</b></li>` : ''}
+        <li><span>Общо</span><b class="sum">${money((+o.total || 0) + (+o.delivery_price || 0))}</b></li></ul>
       <div class="field">Смени статуса<div class="actions">${Object.keys(ORDER_ST).map(k => `<button class="btn ${o.status === k ? 'btn--green' : 'btn--ghost'} btn--sm" data-ostatus="${k}" data-id="${esc(o.id)}">${esc(ORDER_ST[k][0])}</button>`).join('')}</div></div>
       <label class="field">Вътрешна бележка (вижда я само собственикът)<textarea id="oNote" maxlength="2000">${esc(o.admin_note || '')}</textarea></label>
       <div class="actions"><button class="btn btn--primary btn--sm" data-onote="${esc(o.id)}">Запази бележката</button>
@@ -516,11 +541,13 @@
   /* ====================================================================== действия */
   function patchLocal(list, id, patch) { const r = list.find(x => x.id === id); if (r) Object.assign(r, patch); }
   function csv() {
-    const head = ['Номер', 'Дата', 'Статус', 'Клиент', 'Телефон', 'Имейл', 'Получаване', 'Адрес / обект', 'Продукти', 'Сума (€)', 'Бележка'];
+    const head = ['Номер', 'Дата', 'Статус', 'Клиент', 'Телефон', 'Имейл', 'Получаване', 'Адрес / офис / обект', 'Тегло (кг)', 'Продукти', 'Стоки (€)', 'Доставка (€)', 'Бележка'];
     const q = v => '"' + String(v == null ? '' : v).replace(/"/g, '""') + '"';
     const lines = [head.map(q).join(';')].concat(S.orders.map(o => [o.code, fmtDT(o.created_at), (ORDER_ST[o.status] || [o.status])[0], o.customer_name, o.phone, o.email,
-      o.delivery === 'pickup' ? 'Вземане от обект' : 'Доставка', o.delivery === 'pickup' ? o.pickup_place : o.address,
-      (o.items || []).map(i => i.name + ' ' + (i.meta || '') + ' x' + i.qty).join(' | '), String(o.total).replace('.', ','), o.note].map(q).join(';')));
+      deliveryText(o), o.delivery === 'pickup' ? o.pickup_place : o.delivery === 'office' ? o.office_name : [o.city, o.address].filter(Boolean).join(', '),
+      o.weight_kg == null ? '' : String(o.weight_kg).replace('.', ','),
+      (o.items || []).map(i => i.name + ' ' + (i.meta || '') + ' x' + i.qty).join(' | '), String(o.total).replace('.', ','),
+      o.delivery_price == null ? '' : String(o.delivery_price).replace('.', ','), o.note].map(q).join(';')));
     download('porachki-' + dayKey(new Date()) + '.csv', '﻿' + lines.join('\r\n'), 'text/csv;charset=utf-8');
   }
   function ics() {

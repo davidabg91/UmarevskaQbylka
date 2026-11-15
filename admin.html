@@ -9,7 +9,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&family=Playfair+Display:ital,wght@0,600;0,700;1,600&display=swap" rel="stylesheet" />
-  <link rel="stylesheet" href="admin.css?v=3" />
+  <link rel="stylesheet" href="admin.css?v=4" />
   <link rel="icon" type="image/png" href="img/favicon.png" />
   <link rel="manifest" href="admin.webmanifest" />
   <link rel="apple-touch-icon" href="img/app-192.png" />
@@ -31,6 +31,27 @@
       <p class="login__error" id="loginError" role="alert" hidden></p>
       <button type="submit" class="btn btn--primary">Вход</button>
       <a class="login__back" href="index.html">← Към сайта</a>
+      <div class="install" id="installBox" hidden>
+        <div class="install__head">
+          <img src="img/app-192.png" alt="" width="44" height="44" />
+          <p><b>Панелът има приложение</b>Инсталирайте го на телефона и получавайте известие при всяка нова поръчка, абонамент или запитване.</p>
+        </div>
+        <button type="button" class="btn btn--green" id="installBtn">Инсталирай приложението</button>
+        <div class="install__help" id="installHelp" hidden>
+          <ol id="installIos" hidden>
+            <li>Отворете тази страница в <b>Safari</b>.</li>
+            <li>Натиснете бутона <b>„Сподели“</b> <span class="install__ico" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M12 15V3"/><path d="m7 8 5-5 5 5"/><path d="M5 12v7a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-7"/></svg></span> в долната лента.</li>
+            <li>Изберете <b>„Към началния екран“</b> <span class="install__ico" aria-hidden="true"><svg viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="4"/><path d="M12 8v8M8 12h8"/></svg></span> и натиснете <b>„Добави“</b>.</li>
+            <li>Отворете панела от новата икона, влезте и натиснете <b>„Включи известията“</b>.</li>
+          </ol>
+          <ol id="installOther" hidden>
+            <li>Отворете тази страница в <b>Chrome</b>.</li>
+            <li>Натиснете менюто <b>⋮</b> горе вдясно.</li>
+            <li>Изберете <b>„Инсталиране на приложението“</b> или <b>„Добавяне към началния екран“</b>.</li>
+            <li>Отворете панела от новата икона, влезте и натиснете <b>„Включи известията“</b>.</li>
+          </ol>
+        </div>
+      </div>
     </form>
   </main>
 
@@ -82,8 +103,8 @@
   </div>
   <div class="toast" id="toast" role="status" aria-live="polite"></div>
 
-  <script src="config.js?v=3"></script>
+  <script src="config.js?v=4"></script>
   <script src="um-data.js?v=3"></script>
-  <script src="admin.js?v=3"></script>
+  <script src="admin.js?v=4"></script>
 </body>
 </html>

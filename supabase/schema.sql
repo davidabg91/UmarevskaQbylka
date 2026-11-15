@@ -250,6 +250,19 @@ drop trigger if exists um_notify_messages on public.messages;
 create trigger um_notify_messages after insert on public.messages for each row execute function public.um_notify_new();
 
 -- ============================================================================
+--  Куриер, офис, тегло и цена на доставката към поръчката
+-- ============================================================================
+alter table public.orders
+  add column if not exists courier        text check (courier in ('econt', 'speedy', 'pigeon')),
+  add column if not exists city           text check (char_length(city) <= 120),
+  add column if not exists office_code    text check (char_length(office_code) <= 20),
+  add column if not exists office_name    text check (char_length(office_name) <= 300),
+  add column if not exists delivery_price numeric(8,2) check (delivery_price >= 0 and delivery_price < 10000),
+  add column if not exists weight_kg      numeric(7,2) check (weight_kg >= 0 and weight_kg < 100000);
+alter table public.orders drop constraint if exists orders_delivery_check;
+alter table public.orders add constraint orders_delivery_check check (delivery in ('office', 'address', 'pickup'));
+
+-- ============================================================================
 --  Администраторът се добавя ОТДЕЛНО (имейлът не стои в този публичен файл):
 --     insert into public.admins (email) values ('имейл-на-собственика');
 --  Същият имейл трябва да има потребител в Authentication → Users.
