@@ -67,12 +67,12 @@
     '<div class="article__cover"><img src="' + a.img + '" alt="' + a.title + '"></div>' +
     '<article class="article__body">' + a.body + '</article>' +
     '<aside class="article__cta">' +
-      '<span class="article__cta-emoji">🍎</span>' +
+      '<span class="article__cta-emoji"><svg class="ico"><use href="#i-apple"/></svg></span>' +
       '<div class="article__cta-text">' +
         '<h3>' + (a.ctaTitle || 'Поръчайте директно от фермата') + '</h3>' +
         '<p>' + (a.ctaText || 'Свежи ябълки и 100% натурален сок от Умаревска Ябълка — поръчайте лесно онлайн.') + '</p>' +
       '</div>' +
-      '<a href="index.html#shop" class="btn btn--primary">Към магазина →</a>' +
+      '<a href="index.html#shop" class="btn btn--primary">Към магазина <svg class="ico"><use href="#i-arrow"/></svg></a>' +
     '</aside>' +
     '<div class="article__foot">' +
       '<a href="index.html#blog" class="btn btn--ghost btn--dark">← Всички статии</a>' +
@@ -96,7 +96,7 @@
             '<span class="post__cat">' + art.cat + '</span>' +
             '<h3 class="post__title">' + art.title + '</h3>' +
             '<p class="post__excerpt">' + art.excerpt + '</p>' +
-            '<span class="post__more">Прочети →</span>' +
+            '<span class="post__more">Прочети <svg class="ico"><use href="#i-arrow"/></svg></span>' +
           '</div>' +
         '</a>';
     }).join('');

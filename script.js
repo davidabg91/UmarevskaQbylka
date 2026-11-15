@@ -1,5 +1,57 @@
 /* ===================== УМАРЕВСКА ЯБЪЛКА ===================== */
 
+/* ---------- FX SETUP ---------- */
+const root = document.documentElement;
+const RM = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+const FX = !RM;
+if (FX) root.classList.add('fx');
+const clamp01 = v => Math.min(1, Math.max(0, v));
+
+/* Заглавия: разделяне на думи (маска + изплуване) и на букви за hero */
+(function splitText() {
+  let i = 0;
+  function walk(node) {
+    Array.from(node.childNodes).forEach(child => {
+      if (child.nodeType === 3) {
+        const frag = document.createDocumentFragment();
+        child.textContent.split(/(\s+)/).forEach(part => {
+          if (!part) return;
+          if (/^\s+$/.test(part)) { frag.appendChild(document.createTextNode(' ')); return; }
+          const w = document.createElement('span');
+          w.className = 'w';
+          const inner = document.createElement('span');
+          inner.className = 'w__i';
+          inner.style.setProperty('--i', i++);
+          inner.textContent = part;
+          w.appendChild(inner);
+          frag.appendChild(w);
+        });
+        child.replaceWith(frag);
+      } else if (child.nodeType === 1) {
+        walk(child);
+      }
+    });
+  }
+  document.querySelectorAll('[data-split]').forEach(el => { i = 0; walk(el); });
+
+  document.querySelectorAll('.hero__line').forEach((line, li) => {
+    line.querySelectorAll('[data-chars]').forEach(word => {
+      const chars = Array.from(word.textContent.trim());
+      word.textContent = '';
+      word.style.setProperty('--n', chars.length);
+      chars.forEach((c, ci) => {
+        const s = document.createElement('span');
+        s.className = 'ch';
+        s.setAttribute('aria-hidden', 'true');
+        s.style.setProperty('--ci', ci);
+        s.style.setProperty('--li', li);
+        s.textContent = c;
+        word.appendChild(s);
+      });
+    });
+  });
+})();
+
 /* ---------- PRELOADER ---------- */
 (function() {
   const preloader = document.getElementById('preloader');
@@ -15,13 +67,15 @@
       document.body.classList.remove('loading');
       setTimeout(() => {
         preloader.style.display = 'none';
-      }, 600);
+      }, 1200);
     }
+    /* входната анимация на hero тръгва, докато завесата се вдига */
+    setTimeout(() => root.classList.add('ready'), 380);
   }
 
   if (heroVideo) {
     if (heroVideo.readyState >= 3) {
-      removePreloader();
+      setTimeout(removePreloader, 250);
     } else {
       heroVideo.addEventListener('canplay', removePreloader);
       heroVideo.addEventListener('canplaythrough', removePreloader);
@@ -44,29 +98,33 @@ const nav = document.getElementById('nav');
 const burger = document.getElementById('burger');
 const navLinks = document.getElementById('navLinks');
 
-if (nav) {
-  window.addEventListener('scroll', () => {
-    nav.classList.toggle('scrolled', window.scrollY > 40);
-  });
-}
 if (burger && navLinks) {
-  burger.addEventListener('click', () => {
-    burger.classList.toggle('open');
-    navLinks.classList.toggle('open');
-  });
-  navLinks.querySelectorAll('a').forEach(a =>
-    a.addEventListener('click', () => {
-      burger.classList.remove('open');
-      navLinks.classList.remove('open');
-    })
-  );
+  const setMenu = open => {
+    burger.classList.toggle('open', open);
+    navLinks.classList.toggle('open', open);
+    root.classList.toggle('menu-open', open);
+    burger.setAttribute('aria-expanded', open ? 'true' : 'false');
+  };
+  burger.addEventListener('click', () => setMenu(!navLinks.classList.contains('open')));
+  navLinks.querySelectorAll('a').forEach(a => a.addEventListener('click', () => setMenu(false)));
+  document.addEventListener('keydown', e => { if (e.key === 'Escape') setMenu(false); });
 }
 
 /* ---------- REVEAL ON SCROLL ---------- */
 const io = new IntersectionObserver(entries => {
   entries.forEach(e => { if (e.isIntersecting) { e.target.classList.add('in'); io.unobserve(e.target); } });
-}, { threshold: 0.15 });
-document.querySelectorAll('.reveal').forEach(el => io.observe(el));
+}, { threshold: 0.14, rootMargin: '0px 0px -6% 0px' });
+
+function observeReveal(scope) {
+  (scope || document).querySelectorAll('.reveal, [data-split], .reveal-media').forEach(el => {
+    if (el.classList.contains('reveal') && el.parentElement) {
+      const sibs = Array.from(el.parentElement.children).filter(c => c.classList.contains('reveal'));
+      el.style.setProperty('--ri', sibs.indexOf(el) % 4);
+    }
+    io.observe(el);
+  });
+}
+observeReveal();
 
 const yearEl = document.getElementById('year');
 if (yearEl) yearEl.textContent = new Date().getFullYear();
@@ -140,21 +198,27 @@ const filterBtns = document.querySelectorAll('.filter-btn');
 const shopCards = document.querySelectorAll('.varieties__grid .variety');
 
 if (filterBtns.length && shopCards.length) {
+  shopCards.forEach((card, i) => { card.style.viewTransitionName = 'shop-card-' + i; });
+
   filterBtns.forEach(btn => {
     btn.addEventListener('click', () => {
-      filterBtns.forEach(b => b.classList.remove('active'));
-      btn.classList.add('active');
-      
+      if (btn.classList.contains('active')) return;
       const filterValue = btn.dataset.filter;
-      
-      shopCards.forEach(card => {
-        const category = card.dataset.category;
-        if (filterValue === 'all' || category === filterValue) {
-          card.classList.remove('hidden');
-        } else {
-          card.classList.add('hidden');
-        }
-      });
+
+      const apply = () => {
+        filterBtns.forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+        shopCards.forEach(card => {
+          const category = card.dataset.category;
+          const show = filterValue === 'all' || category === filterValue;
+          card.classList.toggle('hidden', !show);
+          if (show) card.classList.add('in');
+        });
+      };
+
+      /* View Transitions API — картите се пренареждат плавно */
+      if (FX && document.startViewTransition) document.startViewTransition(apply);
+      else apply();
     });
   });
 }
@@ -164,7 +228,7 @@ document.querySelectorAll('.variety__order').forEach(function(block){
   var vaddBtn = block.querySelector('.vadd');
   var priceEl = block.querySelector('.vp');
   if (!vaddBtn || !priceEl) return; // Skip non-variety cards (Mix & Juice)
-  
+
   var card = block.closest('.variety');
   var name = card.querySelector('h3').textContent.trim();
   var imgEl = card.querySelector('.variety__top img');
@@ -299,11 +363,11 @@ if (blogGrid) {
         <span class="post__cat">${a.cat}</span>
         <h3 class="post__title">${a.title}</h3>
         <p class="post__excerpt">${a.excerpt}</p>
-        <span class="post__more">Прочети →</span>
+        <span class="post__more">Прочети <svg class="ico"><use href="#i-arrow"/></svg></span>
       </div>
     </a>
   `).join('');
-  document.querySelectorAll('.post.reveal').forEach(el => io.observe(el));
+  observeReveal(blogGrid);
 }
 
 /* ---------- MODAL HELPERS ---------- */
@@ -332,30 +396,6 @@ window.umFakeSubmit = umFakeSubmit;
 
 /* init */
 renderCart();
-
-/* ---------- PARALLAX HERO ---------- */
-(function(){
-  var vid = document.querySelector('.hero__video');
-  var ovl = document.querySelector('.hero__overlay');
-  var cnt = document.querySelector('.hero__content');
-  if (!vid) return;
-  var ticking = false;
-  window.addEventListener('scroll', function(){
-    if (ticking) return;
-    ticking = true;
-    requestAnimationFrame(function(){
-      var y = window.scrollY;
-      var h = window.innerHeight;
-      if (y < h) {
-        var tf = 'translateY(' + (y * 0.38) + 'px)';
-        vid.style.transform = tf;
-        ovl.style.transform = tf;
-        cnt.style.transform = 'translateY(' + (y * 0.11) + 'px)';
-      }
-      ticking = false;
-    });
-  });
-})();
 
 /* ---------- COUNTER ANIMATION ---------- */
 (function(){
@@ -436,10 +476,178 @@ renderCart();
   }
 })();
 
-/* ---------- CALENDAR CURRENT MONTH ---------- */
+/* ---------- CALENDAR: текущ месец + маркер „днес“ ---------- */
 (function(){
-  var m = new Date().getMonth() + 1;
+  var now = new Date();
+  var m = now.getMonth() + 1;
   document.querySelectorAll('.cal__months span[data-m]').forEach(function(s){
     if (+s.dataset.m === m) s.classList.add('cal__now');
   });
+  var wrap = document.querySelector('.cal__wrap');
+  var today = document.querySelector('.cal__today');
+  if (wrap && today) {
+    var days = new Date(now.getFullYear(), m, 0).getDate();
+    wrap.style.setProperty('--now', ((m - 1 + (now.getDate() - 0.5) / days) / 12).toFixed(4));
+    today.classList.add('on');
+  }
+})();
+
+/* ===================== MOTION ENGINE ===================== */
+(function(){
+  var hero = document.querySelector('.hero');
+  var heroVideo = document.querySelector('.hero__video');
+  var footer = document.querySelector('.footer');
+  var isHome = !!hero;
+  var vh = window.innerHeight;
+  var footerH = 0;
+  var heroOff = false;
+  var vel = 0, lastY = window.scrollY;
+  var ticking = false;
+
+  var fxEls = Array.prototype.map.call(document.querySelectorAll('[data-fx]'), function(el){
+    return { el: el, curve: el.querySelector(':scope > .curve path') };
+  });
+
+  /* --- footer reveal: подвалът стои неподвижно под листа --- */
+  function measureFooter(){
+    vh = window.innerHeight;
+    if (!footer || !FX) return;
+    root.classList.remove('fx-foot');
+    footerH = footer.offsetHeight;
+    if (footerH < vh * 0.92) {
+      root.style.setProperty('--footer-h', footerH + 'px');
+      root.classList.add('fx-foot');
+    } else {
+      footerH = 0;
+    }
+  }
+
+  function frame(){
+    ticking = false;
+    var y = window.scrollY;
+    var max = document.documentElement.scrollHeight - vh;
+    vel += (y - lastY - vel) * 0.5;
+    lastY = y;
+
+    if (nav && !nav.classList.contains('nav--solid')) nav.classList.toggle('scrolled', y > 40);
+    if (!FX) return;
+
+    root.style.setProperty('--scroll', max > 0 ? clamp01(y / max).toFixed(4) : 0);
+
+    if (isHome) {
+      hero.style.setProperty('--hp', clamp01(y / vh).toFixed(3));
+      var off = y > vh * 1.15;
+      if (off !== heroOff) {
+        heroOff = off;
+        hero.style.visibility = off ? 'hidden' : '';
+        if (heroVideo) { if (off) heroVideo.pause(); else heroVideo.play().catch(function(){}); }
+      }
+      root.classList.toggle('at-top', !off);
+    }
+
+    for (var i = 0; i < fxEls.length; i++) {
+      var o = fxEls[i];
+      var r = o.el.getBoundingClientRect();
+      if (r.bottom < -vh || r.top > vh * 2) continue;
+      var p = clamp01((vh - r.top) / (vh + r.height));
+      var e = clamp01((vh - r.top) / (vh * 0.8));
+      o.el.style.setProperty('--p', p.toFixed(3));
+      o.el.style.setProperty('--e', e.toFixed(3));
+      if (o.curve) o.curve.setAttribute('d', 'M0 100 Q50 ' + (100 - 200 * (1 - e)).toFixed(1) + ' 100 100Z');
+    }
+
+    if (footer && footerH) footer.style.setProperty('--fp', clamp01(1 - (max - y) / footerH).toFixed(3));
+  }
+  function onScroll(){ if (!ticking) { ticking = true; requestAnimationFrame(frame); } }
+
+  window.addEventListener('scroll', onScroll, { passive: true });
+  window.addEventListener('resize', function(){ measureFooter(); onScroll(); });
+  if (footer && FX && 'ResizeObserver' in window) new ResizeObserver(function(){
+    if (Math.abs(footer.offsetHeight - footerH) > 2) { measureFooter(); onScroll(); }
+  }).observe(footer);
+  measureFooter();
+  frame();
+  window.addEventListener('load', function(){ measureFooter(); frame(); });
+
+  /* --- story видео: върви само когато се вижда --- */
+  var storyVideo = document.querySelector('.story__video');
+  if (storyVideo && 'IntersectionObserver' in window) {
+    new IntersectionObserver(function(en){
+      if (en[0].isIntersecting) storyVideo.play().catch(function(){}); else storyVideo.pause();
+    }, { rootMargin: '200px 0px' }).observe(storyVideo);
+  }
+
+  /* --- активен линк в навигацията --- */
+  if (navLinks && isHome && 'IntersectionObserver' in window) {
+    var links = {};
+    navLinks.querySelectorAll('a[href^="#"]').forEach(function(a){ links[a.getAttribute('href').slice(1)] = a; });
+    var spy = new IntersectionObserver(function(en){
+      en.forEach(function(x){
+        var a = links[x.target.id];
+        if (a) a.classList.toggle('is-active', x.isIntersecting);
+      });
+    }, { rootMargin: '-45% 0px -50% 0px' });
+    Object.keys(links).forEach(function(id){ var s = document.getElementById(id); if (s) spy.observe(s); });
+  }
+
+  if (!FX) return;
+
+  /* --- бягащи ленти: постоянна скорост + инерция от скрола --- */
+  var rows = Array.prototype.map.call(document.querySelectorAll('[data-marquee]'), function(row){
+    var track = row.querySelector('.strip__track');
+    return { track: track, dir: +row.dataset.marquee || 1, html: track.innerHTML, w: 0, x: 0 };
+  });
+  function buildMarquee(){
+    rows.forEach(function(m){
+      m.track.innerHTML = m.html;
+      m.w = m.track.scrollWidth;
+      if (!m.w) return;
+      var n = Math.ceil((window.innerWidth * 2) / m.w) + 1;
+      m.track.innerHTML = new Array(n + 1).join(m.html);
+    });
+  }
+  if (rows.length) {
+    buildMarquee();
+    if (document.fonts && document.fonts.ready) document.fonts.ready.then(buildMarquee);
+    var rT;
+    window.addEventListener('resize', function(){ clearTimeout(rT); rT = setTimeout(buildMarquee, 200); });
+    var visible = false, last = 0;
+    var loop = function(t){
+      if (!visible) return;
+      var dt = Math.min(48, t - (last || t)); last = t;
+      vel *= 0.93;
+      rows.forEach(function(m){
+        if (!m.w) return;
+        m.x = (m.x + (0.045 + Math.abs(vel) * 0.012) * dt) % m.w;
+        var tx = m.dir > 0 ? -m.x : m.x - m.w;
+        m.track.style.transform = 'translate3d(' + tx.toFixed(2) + 'px,0,0)';
+      });
+      requestAnimationFrame(loop);
+    };
+    new IntersectionObserver(function(en){
+      var was = visible;
+      visible = en[0].isIntersecting;
+      if (visible && !was) { last = 0; requestAnimationFrame(loop); }
+    }).observe(document.querySelector('.strip'));
+  }
+
+  /* --- 3D наклон и „прожектор“ под курсора --- */
+  if (window.matchMedia('(hover:hover) and (pointer:fine)').matches) {
+    document.querySelectorAll('[data-tilt],[data-spot]').forEach(function(el){
+      var tilt = el.hasAttribute('data-tilt');
+      el.addEventListener('pointermove', function(ev){
+        var r = el.getBoundingClientRect();
+        var x = ev.clientX - r.left, y = ev.clientY - r.top;
+        el.style.setProperty('--mx', x.toFixed(0) + 'px');
+        el.style.setProperty('--my', y.toFixed(0) + 'px');
+        if (tilt) {
+          el.style.setProperty('--ry', ((x / r.width - 0.5) * 9).toFixed(2) + 'deg');
+          el.style.setProperty('--rx', ((0.5 - y / r.height) * 7).toFixed(2) + 'deg');
+        }
+      });
+      el.addEventListener('pointerleave', function(){
+        if (tilt) { el.style.setProperty('--rx', '0deg'); el.style.setProperty('--ry', '0deg'); }
+      });
+    });
+  }
 })();
