@@ -185,7 +185,7 @@ if (juiceQty) {
       name: 'Натурален ябълков сок',
       meta: '10 € / бр.',
       icon: '🧃',
-      img: 'img/juice.jpg',
+      img: 'img/juice-box.webp',
       unitPrice: JUICE_PRICE,
       qty: juiceCount
     });
@@ -370,6 +370,23 @@ if (blogGrid) {
   observeReveal(blogGrid);
 }
 
+/* ===== ВИДЕО В „МЕДИИ“ — YouTube се зарежда чак при клик (по-лека страница) ===== */
+document.querySelectorAll('[data-yt]').forEach(frame => {
+  const link = frame.querySelector('.mvideo__play');
+  if (!link) return;
+  link.addEventListener('click', e => {
+    if (e.metaKey || e.ctrlKey || e.shiftKey || e.button) return; /* нов таб → отваря YouTube */
+    e.preventDefault();
+    const f = document.createElement('iframe');
+    f.src = 'https://www.youtube-nocookie.com/embed/' + frame.dataset.yt + '?autoplay=1&rel=0&start=' + (parseInt(frame.dataset.start, 10) || 0);
+    f.title = link.getAttribute('aria-label') || 'Видео';
+    f.allow = 'accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share';
+    f.allowFullscreen = true;
+    f.referrerPolicy = 'strict-origin-when-cross-origin';
+    frame.replaceChildren(f);
+  });
+});
+
 /* ---------- MODAL HELPERS ---------- */
 function openModal(m) { m.classList.add('open'); document.body.style.overflow = 'hidden'; }
 function closeModal(m) { m.classList.remove('open'); document.body.style.overflow = ''; }
@@ -406,16 +423,16 @@ renderCart();
     if (!entries[0].isIntersecting || done) return;
     done = true;
     statsEl.querySelectorAll('strong').forEach(function(el){
-      var raw = el.textContent.trim();
-      var num = parseInt(raw, 10);
-      var suffix = raw.replace(/[0-9]/g, '');
+      var parts = el.textContent.trim().match(/^(\D*)(\d+)(.*)$/); /* „~20“, „110+“, „5“ */
+      if (!parts) return;
+      var prefix = parts[1], num = parseInt(parts[2], 10), suffix = parts[3];
       if (!num) return;
       var t0 = null, dur = 1400;
       (function tick(ts){
         if (!t0) t0 = ts;
         var p = Math.min((ts - t0) / dur, 1);
         var e = 1 - Math.pow(1 - p, 3);
-        el.textContent = Math.round(e * num) + suffix;
+        el.textContent = prefix + Math.round(e * num) + suffix;
         if (p < 1) requestAnimationFrame(tick);
       })(performance.now());
     });
@@ -476,20 +493,125 @@ renderCart();
   }
 })();
 
-/* ---------- CALENDAR: текущ месец + маркер „днес“ ---------- */
+/* ===================== GALLERY ===================== */
 (function(){
-  var now = new Date();
-  var m = now.getMonth() + 1;
-  document.querySelectorAll('.cal__months span[data-m]').forEach(function(s){
-    if (+s.dataset.m === m) s.classList.add('cal__now');
-  });
-  var wrap = document.querySelector('.cal__wrap');
-  var today = document.querySelector('.cal__today');
-  if (wrap && today) {
-    var days = new Date(now.getFullYear(), m, 0).getDate();
-    wrap.style.setProperty('--now', ((m - 1 + (now.getDate() - 0.5) / days) / 12).toFixed(4));
-    today.classList.add('on');
+  const grid = document.getElementById('galGrid');
+  if (!grid) return;
+  const items = Array.from(grid.querySelectorAll('.gal__item'));
+  const tabs = document.getElementById('galTabs');
+  const more = document.getElementById('galMore');
+  let filter = 'all', expanded = false;
+  const visibleSet = () => items.filter(el => filter === 'all' || el.dataset.cat === filter);
+
+  /* --- табове --- */
+  function apply(next){
+    filter = next;
+    grid.classList.toggle('is-collapsed', filter === 'all' && !expanded);
+    let k = 0;
+    items.forEach(el => {
+      const show = filter === 'all' || el.dataset.cat === filter;
+      el.classList.toggle('hidden', !show);
+      if (show) { el.style.setProperty('--ri', k++ % 4); el.classList.remove('in'); }
+    });
+    void grid.offsetWidth; /* рестартира входната анимация на показаните плочки */
+    items.forEach(el => { if (!el.classList.contains('hidden')) el.classList.add('in'); });
   }
+  if (tabs) tabs.addEventListener('click', e => {
+    const btn = e.target.closest('.gal__tab');
+    if (!btn || btn.classList.contains('active')) return;
+    tabs.querySelectorAll('.gal__tab').forEach(b => {
+      b.classList.toggle('active', b === btn);
+      b.setAttribute('aria-pressed', b === btn ? 'true' : 'false');
+    });
+    apply(btn.dataset.gal);
+  });
+  if (more) more.addEventListener('click', () => {
+    expanded = true;
+    grid.classList.remove('is-collapsed');
+    items.forEach(el => el.classList.add('in'));
+  });
+
+  /* --- преглед на цял екран --- */
+  const lb = document.createElement('div');
+  lb.className = 'lightbox';
+  lb.setAttribute('role', 'dialog');
+  lb.setAttribute('aria-modal', 'true');
+  lb.setAttribute('aria-label', 'Галерия');
+  lb.innerHTML =
+    '<div class="lightbox__backdrop"></div>' +
+    '<figure class="lightbox__fig"><img class="lightbox__img" alt="" />' +
+    '<figcaption class="lightbox__bar"><span class="lightbox__count"></span><span class="lightbox__cap"></span></figcaption></figure>' +
+    '<button class="lightbox__btn lightbox__btn--close" aria-label="Затвори"><svg class="ico"><use href="#i-x"/></svg></button>' +
+    '<button class="lightbox__btn lightbox__btn--prev" aria-label="Предишна снимка"><svg class="ico"><use href="#i-chev-l"/></svg></button>' +
+    '<button class="lightbox__btn lightbox__btn--next" aria-label="Следваща снимка"><svg class="ico"><use href="#i-chev-r"/></svg></button>';
+  document.body.appendChild(lb);
+  const lbImg = lb.querySelector('.lightbox__img');
+  const lbCap = lb.querySelector('.lightbox__cap');
+  const lbCount = lb.querySelector('.lightbox__count');
+  const closeBtn = lb.querySelector('.lightbox__btn--close');
+  let list = [], idx = 0, token = 0, opener = null;
+
+  function show(i){
+    idx = (i + list.length) % list.length;
+    const el = list[idx], thumb = el.querySelector('img'), my = ++token;
+    lbImg.style.setProperty('--ar', (el.dataset.w / el.dataset.h).toFixed(4));
+    lbImg.src = thumb.currentSrc || thumb.src;   /* миниатюрата веднага, голямата — щом се зареди */
+    lbImg.alt = thumb.alt;
+    lbCap.textContent = thumb.alt;
+    lbCount.textContent = (idx + 1) + ' / ' + list.length;
+    const full = new Image();
+    full.onload = () => { if (my === token) lbImg.src = full.src; };
+    full.src = el.href;
+  }
+  function open(el){
+    list = visibleSet();
+    opener = el;
+    const thumb = el.querySelector('img');
+    const reveal = () => {
+      thumb.style.viewTransitionName = '';
+      show(list.indexOf(el));
+      lb.classList.add('open');
+      root.classList.add('lb-open');
+    };
+    if (FX && document.startViewTransition) {
+      /* снимката „израства“ от плочката до цял екран */
+      thumb.style.viewTransitionName = 'gal-photo';
+      lbImg.style.viewTransitionName = '';
+      const vt = document.startViewTransition(() => { reveal(); lbImg.style.viewTransitionName = 'gal-photo'; });
+      vt.finished.finally(() => { lbImg.style.viewTransitionName = ''; });
+    } else reveal();
+    closeBtn.focus({ preventScroll: true });
+  }
+  function close(){
+    token++;
+    lb.classList.remove('open');
+    root.classList.remove('lb-open');
+    if (opener) opener.focus({ preventScroll: true });
+  }
+
+  grid.addEventListener('click', e => {
+    const el = e.target.closest('.gal__item');
+    if (!el || e.metaKey || e.ctrlKey || e.shiftKey || e.button) return;
+    e.preventDefault();
+    open(el);
+  });
+  lb.addEventListener('click', e => {
+    if (e.target.closest('.lightbox__btn--prev')) show(idx - 1);
+    else if (e.target.closest('.lightbox__btn--next') || e.target === lbImg) show(idx + 1);
+    else close();
+  });
+  document.addEventListener('keydown', e => {
+    if (!lb.classList.contains('open')) return;
+    if (e.key === 'Escape') close();
+    else if (e.key === 'ArrowLeft') show(idx - 1);
+    else if (e.key === 'ArrowRight') show(idx + 1);
+  });
+  let sx = 0, sy = 0;
+  lb.addEventListener('touchstart', e => { sx = e.touches[0].clientX; sy = e.touches[0].clientY; }, { passive: true });
+  lb.addEventListener('touchend', e => {
+    const dx = e.changedTouches[0].clientX - sx, dy = e.changedTouches[0].clientY - sy;
+    if (Math.abs(dx) > 48 && Math.abs(dx) > Math.abs(dy) * 1.4) show(idx + (dx < 0 ? 1 : -1));
+  }, { passive: true });
 })();
 
 /* ===================== MOTION ENGINE ===================== */
@@ -534,6 +656,7 @@ renderCart();
       targets: Array.prototype.slice.call(el.querySelectorAll('.ghost,.story__video,.values__deco,.sub__deco')),
       /* панели, които „порастват“ при влизане */
       grow: el.classList.contains('values') ? { el: el, from: 0.9 } :
+            el.classList.contains('media') ? { el: el, from: 0.92 } :
             el.querySelector('.contact__card') ? { el: el.querySelector('.contact__card'), from: 0.88 } : null
     };
   });

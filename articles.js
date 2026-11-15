@@ -2,7 +2,7 @@
 window.ARTICLES = [
   {
     cat: 'Сортове',
-    img: 'img/b-varieties.jpg',
+    img: 'img/b-varieties.webp',
     icon: '🍎',
     bg: 'linear-gradient(135deg,#e8534f,#c1272d)',
     title: 'Кой сорт ябълка да изберете?',
@@ -74,7 +74,7 @@ window.ARTICLES = [
   },
   {
     cat: 'Здраве',
-    img: 'img/b-health.jpg',
+    img: 'img/b-health.webp',
     icon: '💚',
     bg: 'linear-gradient(135deg,#74c69d,#2d6a4f)',
     title: '7 причини да ядете ябълки всеки ден',
@@ -98,7 +98,7 @@ window.ARTICLES = [
   },
   {
     cat: 'Продукти',
-    img: 'img/b-juice.jpg',
+    img: 'img/b-juice.webp',
     icon: '🧃',
     bg: 'linear-gradient(135deg,#f2c14e,#d98e04)',
     title: 'Какво прави сока ни 100% натурален',
@@ -146,7 +146,7 @@ window.ARTICLES = [
   },
   {
     cat: 'Съхранение',
-    img: 'img/b-storage.jpg',
+    img: 'img/b-storage.webp',
     icon: '📦',
     bg: 'linear-gradient(135deg,#9b7ede,#5e3cae)',
     title: 'Как да съхраняваме ябълките по-дълго',
@@ -167,7 +167,7 @@ window.ARTICLES = [
   },
   {
     cat: 'Ферма',
-    img: 'img/b-season.jpg',
+    img: 'img/b-season.webp',
     icon: '🌳',
     bg: 'linear-gradient(135deg,#74c69d,#1b4332)',
     title: 'Сезонът в Умаревци: от цвят до бране',
