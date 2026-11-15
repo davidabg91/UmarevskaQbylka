@@ -24,7 +24,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Caveat:wght@500;700&family=Manrope:wght@400;500;600;700;800&family=Playfair+Display:ital,wght@0,500;0,600;0,700;0,800;1,500;1,600&display=swap" rel="stylesheet" />
-  <link rel="stylesheet" href="styles.css?v=28" />
+  <link rel="stylesheet" href="styles.css?v=29" />
   <link rel="icon" type="image/png" href="img/favicon.png" />
   <link rel="apple-touch-icon" href="img/apple-touch-icon.png" />
 </head>
@@ -142,9 +142,20 @@
     <div class="story__media reveal-media">
       <div class="story__media-frame"></div>
       <div class="story__frame">
-        <video class="story__video" muted loop playsinline preload="none">
-          <source src="19666848-uhd_3840_2160_24fps.mp4" type="video/mp4" />
-        </video>
+        <!-- Фотоалбум: снимките се сменят сами; нова снимка = още един ред с data-src -->
+        <div class="story__slides" id="storySlides">
+          <img class="story__slide is-on" src="img/story/01.webp" alt="Цъфнали редове с изглед към хълмовете" width="800" height="1000" />
+          <img class="story__slide" data-src="img/story/02.webp" alt="Ябълките зреят под градозащитната мрежа" width="800" height="1000" />
+          <img class="story__slide" data-src="img/story/03.webp" alt="Прясно набрана реколта" width="800" height="1000" />
+          <img class="story__slide" data-src="img/story/04.webp" alt="Залез над градината" width="800" height="1000" />
+          <img class="story__slide" data-src="img/story/05.webp" alt="Младите дръвчета, отрупани с плод" width="800" height="1000" />
+          <img class="story__slide" data-src="img/story/06.webp" alt="Пролетно слънце над цъфналата градина" width="800" height="1000" />
+          <img class="story__slide" data-src="img/story/07.webp" alt="Берем на ръка, ябълка по ябълка" width="800" height="1000" />
+          <img class="story__slide" data-src="img/story/08.webp" alt="Хладилната камера, пълна с ябълки" width="800" height="1000" />
+          <img class="story__slide" data-src="img/story/09.webp" alt="Между редовете преди беритба" width="800" height="1000" />
+          <img class="story__slide" data-src="img/story/10.webp" alt="Ябълков цвят отблизо" width="800" height="1000" />
+        </div>
+        <div class="story__bars" aria-hidden="true"></div>
       </div>
       <div class="story__badge" aria-hidden="true">
         <svg viewBox="0 0 200 200" class="story__badge-ring">
@@ -161,9 +172,10 @@
       <p class="reveal">Разположени между селата Умаревци и Йоглав, в сърцето на Ловешкия край, нашите овощни градини обхващат над 110 декара плодородна земя. В тях отглеждаме ябълки и сливи, като съчетаваме натрупания през годините опит с модерни технологии и постоянно усъвършенстване на производството.</p>
       <p class="reveal">През годините изградихме стопанство, в което качеството е водещ приоритет. Ябълковите ни насаждения включват утвърдени и съвременни сортове като Златна превъзходна, Фуджи, Пинова, Флорина и Моди. Отглеждаме и сливи от сорта Стенлей.</p>
       <div class="story__stats reveal">
-        <div><strong>~20</strong><span>години опит</span></div>
-        <div><strong>110+</strong><span>декара градини</span></div>
-        <div><strong>5</strong><span>сорта ябълки</span></div>
+        <div><strong>20</strong><b>Години опит</b><span>В овощарството</span></div>
+        <div><strong>110+</strong><b>Декара</b><span>Овощни градини</span></div>
+        <div><strong data-static>2025</strong><b>Нови насаждения</b><span>С посадъчен материал от Нидерландия</span></div>
+        <div><strong>100%</strong><b>Семейна отдаденост</b><span>Грижа във всеки етап</span></div>
       </div>
       <p class="reveal">Инвестираме непрекъснато в развитието на нашите градини. Разполагаме със система за капково напояване, градозащитни мрежи и съвременни технологии за отглеждане, които ни позволяват да осигуряваме оптимални условия за развитието на всяко дърво и получаването на качествена реколта.</p>
       <p class="reveal">През 2025 г. направихме още една важна крачка напред, като засадихме нови овощни насаждения с висококачествен посадъчен материал от Нидерландия. Избрахме посадъчен материал от най-висок клас, с безупречно качество, за да продължим да обновяваме и развиваме градините си и да отговаряме на все по-високите изисквания на пазара.</p>
@@ -858,6 +870,6 @@
   </div>
 
   <script src="articles.js?v=12"></script>
-  <script src="script.js?v=26"></script>
+  <script src="script.js?v=27"></script>
 </body>
 </html>

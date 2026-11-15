@@ -422,7 +422,7 @@ renderCart();
   new IntersectionObserver(function(entries){
     if (!entries[0].isIntersecting || done) return;
     done = true;
-    statsEl.querySelectorAll('strong').forEach(function(el){
+    statsEl.querySelectorAll('strong:not([data-static])').forEach(function(el){
       var parts = el.textContent.trim().match(/^(\D*)(\d+)(.*)$/); /* „~20“, „110+“, „5“ */
       if (!parts) return;
       var prefix = parts[1], num = parseInt(parts[2], 10), suffix = parts[3];
@@ -653,7 +653,7 @@ renderCart();
       curve: el.querySelector(':scope > .curve path'),
       lastD: '',
       /* елементи с паралакс по --p */
-      targets: Array.prototype.slice.call(el.querySelectorAll('.ghost,.story__video,.values__deco,.sub__deco')),
+      targets: Array.prototype.slice.call(el.querySelectorAll('.ghost,.story__slides,.values__deco,.sub__deco')),
       /* панели, които „порастват“ при влизане */
       grow: el.classList.contains('values') ? { el: el, from: 0.9 } :
             el.classList.contains('media') ? { el: el, from: 0.92 } :
@@ -738,13 +738,44 @@ renderCart();
   frame();
   window.addEventListener('load', function(){ measureFooter(); frame(); });
 
-  /* --- story видео: върви само когато се вижда --- */
-  var storyVideo = document.querySelector('.story__video');
-  if (storyVideo && 'IntersectionObserver' in window) {
+  /* --- фотоалбум в „Нашата история": нова снимка на всеки 2 секунди, само докато се вижда --- */
+  (function(){
+    var box = document.getElementById('storySlides');
+    if (!box) return;
+    var slides = Array.prototype.slice.call(box.querySelectorAll('.story__slide'));
+    if (slides.length < 2 || !FX || !('IntersectionObserver' in window)) return;
+    var STEP = 2000, cur = 0, timer = null, visible = false;
+    var bars = document.querySelector('.story__bars'), segs = [];
+    if (bars) {
+      bars.style.setProperty('--step', STEP + 'ms');
+      slides.forEach(function(){ segs.push(bars.appendChild(document.createElement('i'))); });
+    }
+    function load(el){ if (el.dataset.src) { el.src = el.dataset.src; el.removeAttribute('data-src'); } }
+    function mark(){
+      segs.forEach(function(s, k){ s.className = k < cur ? 'done' : ''; });
+      if (segs[cur] && visible) { void segs[cur].offsetWidth; segs[cur].className = 'now'; }
+    }
+    function schedule(ms){ clearTimeout(timer); if (visible && !document.hidden) timer = setTimeout(next, ms); }
+    function next(){
+      var n = (cur + 1) % slides.length, el = slides[n];
+      load(el);
+      if (!el.complete || !el.naturalWidth) return schedule(250); /* изчаква снимката да се зареди */
+      var prev = slides[cur];
+      prev.classList.remove('is-on'); prev.classList.add('is-out');
+      setTimeout(function(){ prev.classList.remove('is-out'); }, 1300);
+      el.classList.remove('is-out'); el.classList.add('is-on');
+      cur = n;
+      load(slides[(cur + 1) % slides.length]);
+      mark();
+      schedule(STEP);
+    }
     new IntersectionObserver(function(en){
-      if (en[0].isIntersecting) storyVideo.play().catch(function(){}); else storyVideo.pause();
-    }, { rootMargin: '500px 0px' }).observe(storyVideo);
-  }
+      visible = en[0].isIntersecting;
+      if (visible) { load(slides[(cur + 1) % slides.length]); mark(); schedule(STEP); }
+      else clearTimeout(timer);
+    }, { threshold: 0.25 }).observe(box);
+    document.addEventListener('visibilitychange', function(){ if (!document.hidden) { mark(); schedule(STEP); } else clearTimeout(timer); });
+  })();
 
   /* --- активен линк в навигацията --- */
   if (navLinks && isHome && 'IntersectionObserver' in window) {
