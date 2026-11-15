@@ -275,22 +275,38 @@ function loadCart() {
 }
 function saveCart() { localStorage.setItem(CART_KEY, JSON.stringify(cart)); }
 
+function cartSnapshot() {
+  return {
+    cart: cart.map(i => ({ n: i.name + (i.meta ? ' · ' + i.meta.split(' · ')[0] : ''), q: i.qty, p: i.unitPrice })),
+    total: cart.reduce((s, i) => s + i.qty * i.unitPrice, 0)
+  };
+}
+function trackCart(action, item) {
+  if (!window.UMTrack) return;
+  const s = cartSnapshot();
+  if (item) { s.item = item.name; s.qty = item.qty; }
+  UMTrack.event('cart', action, s);
+}
+
 function addToCart(item) {
   const existing = cart.find(i => i.id === item.id);
   if (existing) existing.qty += item.qty;
   else cart.push(item);
   saveCart(); renderCart();
+  trackCart('add', item);
 }
 function removeFromCart(id) {
+  const gone = cart.find(i => i.id === id);
   cart = cart.filter(i => i.id !== id);
   saveCart(); renderCart();
+  if (gone) trackCart('remove', gone);
 }
 function changeQty(id, delta) {
   const it = cart.find(i => i.id === id);
   if (!it) return;
   it.qty += delta;
   if (it.qty <= 0) removeFromCart(id);
-  else { saveCart(); renderCart(); }
+  else { saveCart(); renderCart(); trackCart('qty', it); }
 }
 
 function renderCart() {
@@ -341,14 +357,113 @@ document.getElementById('cartClose').addEventListener('click', closeCart);
 cartBackdrop.addEventListener('click', closeCart);
 document.getElementById('cartShopLink').addEventListener('click', closeCart);
 
-/* checkout */
+/* checkout — истинска поръчка: данни за връзка + запис в базата */
 const orderModal = document.getElementById('orderModal');
+const orderPanel = orderModal.querySelector('.modal__panel');
+const UM_DATA = window.UMData || { mode: 'off', insert: () => Promise.resolve({ ok: false }) };
+const UM_PHONE = '089 679 9117';
+const PICKUPS = ['с. Умаревци (обект 1)', 'с. Брестовец, Плевен (обект 2)', 'с. Калейца, на пътя за Троян (обект 3)'];
+const escHtml = s => String(s == null ? '' : s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+const orderCode = () => 'UY-' + Math.random().toString(36).slice(2, 7).toUpperCase();
+
+function renderOrderForm() {
+  const snap = cartSnapshot();
+  orderPanel.classList.add('modal__panel--form');
+  orderPanel.innerHTML = `
+    <button class="modal__close" type="button" data-order-close aria-label="Затвори">✕</button>
+    <form class="sub-modal__form order-form" id="orderForm">
+      <h3>Завършване на поръчката</h3>
+      <p>Оставете данни за връзка — ще ви се обадим за потвърждение и уточняване на доставката.</p>
+      <ul class="order-form__items">
+        ${cart.map(i => `<li><span>${escHtml(i.name)} <small>${escHtml(i.meta.split(' · ')[0])} × ${i.qty}</small></span><b>${i.qty * i.unitPrice} €</b></li>`).join('')}
+        <li class="order-form__sum"><span>Общо</span><b>${snap.total} €</b></li>
+      </ul>
+      <div class="sub-modal__row">
+        <input type="text" name="name" placeholder="Име и фамилия" aria-label="Име и фамилия" autocomplete="name" minlength="2" maxlength="120" required />
+        <input type="tel" name="phone" placeholder="Телефон" aria-label="Телефон" autocomplete="tel" minlength="5" maxlength="40" required />
+      </div>
+      <input type="email" name="email" placeholder="Имейл (по желание)" aria-label="Имейл" autocomplete="email" maxlength="160" />
+      <div class="order-form__switch" role="radiogroup" aria-label="Начин на получаване">
+        <label><input type="radio" name="delivery" value="address" checked /><span>Доставка до адрес</span></label>
+        <label><input type="radio" name="delivery" value="pickup" /><span>Вземане от обект</span></label>
+      </div>
+      <textarea name="address" rows="2" placeholder="Адрес за доставка (град, улица, №)" aria-label="Адрес за доставка" autocomplete="street-address" maxlength="400" required></textarea>
+      <select name="pickup" aria-label="Обект за вземане" hidden>
+        ${PICKUPS.map(p => `<option>${escHtml(p)}</option>`).join('')}
+      </select>
+      <textarea name="note" rows="2" placeholder="Бележка към поръчката (по желание)" aria-label="Бележка" maxlength="1000"></textarea>
+      <input type="text" name="website" class="order-form__hp" tabindex="-1" autocomplete="off" aria-hidden="true" />
+      <p class="order-form__error" role="alert" hidden></p>
+      <div class="sub-modal__pay-row">
+        <div class="sub-modal__total">Общо: <strong>${snap.total} €</strong></div>
+        <button type="submit" class="btn btn--primary sub-modal__pay-btn">Изпрати поръчката <svg class="ico"><use href="#i-arrow"/></svg></button>
+      </div>
+    </form>`;
+  const form = orderPanel.querySelector('#orderForm');
+  const err = form.querySelector('.order-form__error');
+  const submitBtn = form.querySelector('button[type="submit"]');
+  const syncDelivery = () => {
+    const pickup = form.delivery.value === 'pickup';
+    form.address.hidden = pickup; form.address.required = !pickup;
+    form.pickup.hidden = !pickup;
+  };
+  form.querySelectorAll('input[name="delivery"]').forEach(r => r.addEventListener('change', syncDelivery));
+  orderPanel.querySelector('[data-order-close]').addEventListener('click', () => closeModal(orderModal));
+
+  form.addEventListener('submit', e => {
+    e.preventDefault();
+    if (form.website.value) { renderOrderDone(''); return; }      /* капан за ботове */
+    const pickup = form.delivery.value === 'pickup';
+    const code = orderCode();
+    const row = {
+      code: code,
+      customer_name: form.elements.name.value.trim(),
+      phone: form.phone.value.trim(),
+      email: form.email.value.trim() || null,
+      delivery: pickup ? 'pickup' : 'address',
+      address: pickup ? null : form.address.value.trim(),
+      pickup_place: pickup ? form.pickup.value : null,
+      note: form.note.value.trim() || null,
+      items: cart.map(i => ({ id: i.id, name: i.name, meta: i.meta, qty: i.qty, price: i.unitPrice })),
+      total: snap.total,
+      session_id: window.UMTrack && UMTrack.sid || null
+    };
+    err.hidden = true;
+    submitBtn.disabled = true;
+    const label = submitBtn.innerHTML;
+    submitBtn.textContent = 'Изпращане…';
+    UM_DATA.insert('orders', row).then(res => {
+      if (!res.ok) {
+        submitBtn.disabled = false; submitBtn.innerHTML = label;
+        err.textContent = 'Не успяхме да изпратим поръчката. Опитайте отново или се обадете на ' + UM_PHONE + '.';
+        err.hidden = false;
+        return;
+      }
+      if (window.UMTrack) UMTrack.event('order', code, { total: row.total, items: row.items.length, delivery: row.delivery });
+      cart = []; saveCart(); renderCart();
+      renderOrderDone(code);
+    });
+  });
+}
+function renderOrderDone(code) {
+  orderPanel.classList.remove('modal__panel--form');
+  orderPanel.innerHTML = `
+    <div class="order-done">
+      <span class="order-done__check">✓</span>
+      <h3>Благодарим за поръчката!</h3>
+      <p>Получихме вашата заявка. Ще се свържем с вас за потвърждение и доставка.</p>
+      ${code ? `<p class="order-done__code">Номер на поръчката: <strong>${escHtml(code)}</strong></p>` : ''}
+      <button class="btn btn--primary" id="orderOk">Продължи</button>
+    </div>`;
+  orderPanel.querySelector('#orderOk').addEventListener('click', () => closeModal(orderModal));
+}
 checkoutBtn.addEventListener('click', () => {
   if (!cart.length) return;
-  cart = []; saveCart(); renderCart(); closeCart();
+  closeCart();
+  renderOrderForm();
   openModal(orderModal);
+  if (window.UMTrack) UMTrack.event('checkout_open', null, cartSnapshot());
 });
-document.getElementById('orderOk').addEventListener('click', () => closeModal(orderModal));
 document.getElementById('orderBackdrop').addEventListener('click', () => closeModal(orderModal));
 
 /* ===================== BLOG ===================== */
@@ -398,11 +513,28 @@ document.addEventListener('keydown', e => {
   }
 });
 
-/* ---------- CONTACT (демо) ---------- */
+/* ---------- CONTACT — запитването се записва в базата ---------- */
 function umFakeSubmit(e) {
   e.preventDefault();
-  e.target.reset();
-  alert('Благодарим! Вашето съобщение е изпратено (демо).');
+  var f = e.target;
+  var status = f.querySelector('.contact__form-status');
+  if (!status) { status = document.createElement('p'); status.className = 'contact__form-status'; status.setAttribute('role', 'status'); f.appendChild(status); }
+  var name = (f.querySelector('input[type="text"]') || {}).value || '';
+  var phone = (f.querySelector('input[type="tel"]') || {}).value || '';
+  var email = (f.querySelector('input[type="email"]') || {}).value || '';
+  var message = (f.querySelector('textarea') || {}).value || '';
+  if (!phone.trim() && !email.trim()) { status.textContent = 'Оставете телефон или имейл, за да ви върнем отговор.'; return false; }
+  var btn = f.querySelector('button[type="submit"]');
+  if (btn) btn.disabled = true;
+  status.textContent = 'Изпращане…';
+  UM_DATA.insert('messages', {
+    customer_name: name.trim().slice(0, 120), phone: phone.trim().slice(0, 40) || null, email: email.trim().slice(0, 160) || null,
+    message: message.trim().slice(0, 3000), session_id: window.UMTrack && UMTrack.sid || null
+  }).then(function (res) {
+    if (btn) btn.disabled = false;
+    if (res.ok) { f.reset(); status.textContent = 'Благодарим! Получихме съобщението и ще се свържем с вас.'; if (window.UMTrack) UMTrack.event('contact_msg'); }
+    else status.textContent = 'Не успяхме да изпратим съобщението. Обадете се на ' + UM_PHONE + '.';
+  });
   return false;
 }
 
@@ -453,7 +585,10 @@ renderCart();
   var planInput = document.getElementById('subPlanInput');
   var successOk = document.getElementById('subSuccessOk');
 
+  var current = { plan: '', price: 0, kg: null };
   function openModal(plan, price, kg) {
+    current = { plan: plan, price: parseFloat(price) || 0, kg: parseFloat(kg) || null };
+    if (window.UMTrack) UMTrack.event('sub_open', plan, { price: current.price });
     if (planName) planName.textContent = plan;
     if (planPrice) planPrice.textContent = price;
     if (planTotal) planTotal.textContent = price;
@@ -487,8 +622,28 @@ renderCart();
   if (form) {
     form.addEventListener('submit', function(e) {
       e.preventDefault();
-      form.style.display = 'none';
-      success.style.display = 'flex';
+      var fd = new FormData(form);
+      var err = form.querySelector('.order-form__error');
+      if (!err) { err = document.createElement('p'); err.className = 'order-form__error'; err.setAttribute('role', 'alert'); form.insertBefore(err, form.querySelector('.sub-modal__pay-row')); }
+      err.hidden = true;
+      var btn = form.querySelector('button[type="submit"]');
+      btn.disabled = true;
+      UM_DATA.insert('subscriptions', {
+        plan: current.plan, price: current.price, kg: current.kg,
+        customer_name: String(fd.get('name') || '').trim(), phone: String(fd.get('phone') || '').trim(),
+        email: String(fd.get('email') || '').trim() || null, address: String(fd.get('address') || '').trim() || null,
+        start_pref: String(fd.get('start') || '') || null, session_id: window.UMTrack && UMTrack.sid || null
+      }).then(function (res) {
+        btn.disabled = false;
+        if (!res.ok) {
+          err.textContent = 'Не успяхме да запишем заявката. Опитайте отново или се обадете на ' + UM_PHONE + '.';
+          err.hidden = false;
+          return;
+        }
+        if (window.UMTrack) UMTrack.event('sub_order', current.plan, { price: current.price });
+        form.style.display = 'none';
+        success.style.display = 'flex';
+      });
     });
   }
 })();

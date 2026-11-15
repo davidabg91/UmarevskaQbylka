@@ -1,0 +1,82 @@
+<!DOCTYPE html>
+<html lang="bg">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="robots" content="noindex, nofollow" />
+  <title>Админ панел — Умаревска Ябълка</title>
+  <meta name="theme-color" content="#0f2a1d" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&family=Playfair+Display:ital,wght@0,600;0,700;1,600&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="admin.css?v=1" />
+  <link rel="icon" type="image/png" href="img/favicon.png" />
+</head>
+<body>
+
+  <!-- ===== ВХОД ===== -->
+  <main class="login" id="login" hidden>
+    <form class="login__card" id="loginForm">
+      <img src="img/logo.webp" alt="Умаревска Ябълка" class="login__logo" width="640" height="466" />
+      <h1>Админ панел</h1>
+      <p class="login__sub" id="loginSub">Влезте с имейла и паролата на собственика.</p>
+      <label>Имейл<input type="email" name="email" autocomplete="username" required /></label>
+      <label>Парола<input type="password" name="password" autocomplete="current-password" required /></label>
+      <p class="login__error" id="loginError" role="alert" hidden></p>
+      <button type="submit" class="btn btn--primary">Вход</button>
+      <a class="login__back" href="index.html">← Към сайта</a>
+    </form>
+  </main>
+
+  <!-- ===== ПАНЕЛ ===== -->
+  <div class="app" id="app" hidden>
+    <aside class="side">
+      <a class="side__brand" href="index.html" title="Към сайта">
+        <img src="img/logo.webp" alt="Умаревска Ябълка" width="640" height="466" />
+      </a>
+      <nav class="side__nav" id="nav">
+        <button data-view="home" class="active"><span>Табло</span></button>
+        <button data-view="orders"><span>Поръчки</span><i data-badge="orders"></i></button>
+        <button data-view="subs"><span>Абонаменти</span><i data-badge="subs"></i></button>
+        <button data-view="calendar"><span>Доставки</span><i data-badge="calendar"></i></button>
+        <button data-view="messages"><span>Запитвания</span><i data-badge="messages"></i></button>
+        <button data-view="stats"><span>Статистика</span></button>
+        <button data-view="carts"><span>Изоставени кошници</span></button>
+      </nav>
+      <div class="side__foot">
+        <span class="side__user" id="userEmail"></span>
+        <button class="linkbtn" id="seedBtn" hidden>Зареди примерни данни</button>
+        <button class="linkbtn" id="logoutBtn">Изход</button>
+      </div>
+    </aside>
+
+    <div class="main">
+      <header class="top">
+        <h1 id="viewTitle">Табло</h1>
+        <div class="top__tools">
+          <div class="range" id="range" role="group" aria-label="Период">
+            <button data-range="1">Днес</button>
+            <button data-range="7" class="active">7 дни</button>
+            <button data-range="30">30 дни</button>
+            <button data-range="90">90 дни</button>
+          </div>
+          <button class="btn btn--ghost" id="refreshBtn" title="Обнови данните">Обнови</button>
+        </div>
+      </header>
+      <div class="demo-note" id="demoNote" hidden>Демо режим: данните са примерни и стоят само в този браузър. На живия сайт панелът ще чете от базата данни.</div>
+      <section class="view" id="view" aria-live="polite"></section>
+    </div>
+  </div>
+
+  <!-- странично чекмедже с детайли -->
+  <div class="drawer" id="drawer" aria-hidden="true">
+    <div class="drawer__backdrop" data-close-drawer></div>
+    <aside class="drawer__panel" id="drawerPanel" role="dialog" aria-modal="true"></aside>
+  </div>
+  <div class="toast" id="toast" role="status" aria-live="polite"></div>
+
+  <script src="config.js?v=2"></script>
+  <script src="um-data.js?v=1"></script>
+  <script src="admin.js?v=1"></script>
+</body>
+</html>
