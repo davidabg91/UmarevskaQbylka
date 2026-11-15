@@ -821,8 +821,9 @@ body.loading{overflow:hidden}
     background:radial-gradient(70% 50% at 100% 0%,rgba(233,185,73,.2),transparent 65%),radial-gradient(60% 50% at 0% 100%,rgba(82,183,136,.25),transparent 65%),var(--green-deep);
     clip-path:circle(0 at calc(100% - 50px) 46px);visibility:hidden;transition:clip-path .8s var(--ease-io),visibility 0s .8s}
   .nav__links.open{clip-path:circle(150% at calc(100% - 50px) 46px);visibility:visible;transition:clip-path .8s var(--ease-io),visibility 0s}
-  .nav__links a,.nav.scrolled .nav__links a,.nav--solid .nav__links a{color:#fff;font-family:var(--font-d);font-weight:600;font-size:clamp(2rem,9.5vw,3.2rem);line-height:1.15;padding:.35rem .2rem;
-    opacity:0;transform:translateY(26px);transition:opacity .5s,transform .7s var(--ease),color .3s}
+  .nav__links a,.nav.scrolled .nav__links a,.nav--solid .nav__links a{color:#fff;font-family:var(--font-d);font-weight:600;font-size:clamp(2rem,9.5vw,3.2rem);line-height:1.15;padding:.35rem .2rem}
+  /* скрито/показано състояние — с ниска специфичност, за да го надделява .open и при .scrolled / .nav--solid */
+  .nav__links a{opacity:0;transform:translateY(26px);transition:opacity .5s,transform .7s var(--ease),color .3s}
   .nav__links a:hover,.nav.scrolled .nav__links a:hover,.nav--solid .nav__links a:hover{background:none;color:var(--gold)}
   .nav__links a::after{display:none}
   .nav__links.open a{opacity:1;transform:none}
