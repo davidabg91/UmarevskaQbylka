@@ -88,6 +88,10 @@ h1,h2,h3{font-family:var(--font-d);font-weight:600;line-height:1.15}
 .tile--accent{border-color:color-mix(in srgb,var(--red) 35%,var(--line))}
 .empty{padding:1.6rem 1rem;text-align:center;color:var(--muted);font-weight:600}
 
+.appcard{display:flex;align-items:center;justify-content:space-between;gap:1rem 1.4rem;flex-wrap:wrap;padding:1rem 1.2rem}
+.appcard__text{flex:1 1 280px;min-width:0;display:flex;flex-direction:column;gap:.15rem}
+.appcard__text span{font-size:.88rem;color:var(--muted)}
+
 /* ---------- напомняния ---------- */
 .remind{border-color:color-mix(in srgb,var(--gold) 70%,var(--line));background:linear-gradient(135deg,#fffdf8,#fff5dc)}
 .remind__list{list-style:none;display:flex;flex-direction:column;gap:.5rem}

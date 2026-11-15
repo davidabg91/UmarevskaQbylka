@@ -191,6 +191,16 @@
       });
     },
 
+    /* админ: извикване на функция в Supabase (напр. пробно известие) */
+    callFunction: function (name, query) {
+      if (mode !== 'supabase') return Promise.reject(new Error('Работи само с истинската база.'));
+      return authed(function (s) {
+        return fetch(BASE + '/functions/v1/' + name + (query || ''), { method: 'POST', headers: headers(s.access_token), body: '{}' })
+          .then(function (r) { return r.ok ? r.json() : fail(r); });
+      });
+    },
+    vapidPublicKey: String(C.vapidPublicKey || ''),
+
     /* само за демо режима */
     demoReplace: function (table, rows) { if (mode === 'demo') demoWrite(table, rows); },
     uid: uid

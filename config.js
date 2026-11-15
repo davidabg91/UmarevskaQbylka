@@ -5,5 +5,7 @@
    НИКОГА не слагайте тук secret / service_role ключ. */
 window.UM_CONFIG = {
   supabaseUrl: 'https://cjxmwgnxxxteoodtqjsp.supabase.co',
-  supabaseKey: 'sb_publishable_b_Js8tYI_fzFkCMut2JzPw_ufC9wm9J'
+  supabaseKey: 'sb_publishable_b_Js8tYI_fzFkCMut2JzPw_ufC9wm9J',
+  /* публичен ключ за известията на телефона (частният стои само в базата) */
+  vapidPublicKey: 'BNv29v8pBRywkMx2uoHot7mzrMI3X5DGzpSODOu62xjy6h0fSE-_cb1_3HMXlDQh-KhxEnu4Z-qkbxNf-WGolsk'
 };

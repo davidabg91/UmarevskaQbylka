@@ -172,6 +172,84 @@ drop policy if exists "admin delete events" on public.events;
 create policy "admin delete events" on public.events for delete to authenticated using (public.is_admin());
 
 -- ============================================================================
+--  Известия на телефона на собственика (Web Push)
+--  При нов ред базата вика функцията supabase/functions/notify, която праща известието.
+-- ============================================================================
+create extension if not exists pg_net;
+
+alter table public.orders        add column if not exists notified_at timestamptz;
+alter table public.subscriptions add column if not exists notified_at timestamptz;
+alter table public.messages      add column if not exists notified_at timestamptz;
+
+-- посетител не може сам да отбележи реда си като „вече известен“
+drop policy if exists "public insert orders" on public.orders;
+create policy "public insert orders" on public.orders
+  for insert to anon, authenticated
+  with check (status = 'new' and admin_note is null and notified_at is null);
+drop policy if exists "public insert subscriptions" on public.subscriptions;
+create policy "public insert subscriptions" on public.subscriptions
+  for insert to anon, authenticated
+  with check (status = 'new' and admin_note is null and delivery_day is null and started_on is null and notified_at is null);
+drop policy if exists "public insert messages" on public.messages;
+create policy "public insert messages" on public.messages
+  for insert to anon, authenticated
+  with check (status = 'new' and notified_at is null);
+
+-- устройствата, на които собственикът е включил известията
+create table if not exists public.push_subscriptions (
+  id         uuid primary key default gen_random_uuid(),
+  created_at timestamptz not null default now(),
+  endpoint   text not null unique check (char_length(endpoint) <= 1000),
+  p256dh     text not null check (char_length(p256dh) <= 200),
+  auth       text not null check (char_length(auth) <= 100),
+  user_agent text check (char_length(user_agent) <= 300)
+);
+alter table public.push_subscriptions enable row level security;
+revoke all on public.push_subscriptions from anon;
+grant select, insert, delete on public.push_subscriptions to authenticated;
+drop policy if exists "admin all push_subscriptions" on public.push_subscriptions;
+create policy "admin all push_subscriptions" on public.push_subscriptions
+  for all to authenticated using (public.is_admin()) with check (public.is_admin());
+
+-- вътрешни стойности (ключът за подписване на известията); достъпни само за функцията
+create table if not exists public.app_private (
+  key   text primary key,
+  value text not null
+);
+alter table public.app_private enable row level security;
+revoke all on public.app_private from anon, authenticated;
+
+-- ВНИМАНИЕ: адресът по-долу е на конкретния проект; при друг проект го сменете.
+create or replace function public.um_notify_new()
+returns trigger
+language plpgsql
+security definer
+set search_path = public
+as $$
+begin
+  begin
+    perform net.http_post(
+      url := 'https://cjxmwgnxxxteoodtqjsp.supabase.co/functions/v1/notify',
+      body := '{}'::jsonb,
+      headers := '{"Content-Type":"application/json"}'::jsonb,
+      timeout_milliseconds := 10000
+    );
+  exception when others then
+    null;  -- поръчка никога не бива да се провали заради известие
+  end;
+  return new;
+end;
+$$;
+revoke all on function public.um_notify_new() from public, anon, authenticated;
+
+drop trigger if exists um_notify_orders on public.orders;
+create trigger um_notify_orders after insert on public.orders for each row execute function public.um_notify_new();
+drop trigger if exists um_notify_subscriptions on public.subscriptions;
+create trigger um_notify_subscriptions after insert on public.subscriptions for each row execute function public.um_notify_new();
+drop trigger if exists um_notify_messages on public.messages;
+create trigger um_notify_messages after insert on public.messages for each row execute function public.um_notify_new();
+
+-- ============================================================================
 --  Администраторът се добавя ОТДЕЛНО (имейлът не стои в този публичен файл):
 --     insert into public.admins (email) values ('имейл-на-собственика');
 --  Същият имейл трябва да има потребител в Authentication → Users.

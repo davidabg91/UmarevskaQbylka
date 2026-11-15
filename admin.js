@@ -55,7 +55,9 @@
       $('#userEmail').textContent = s.email || '';
       $('#demoNote').hidden = D.mode !== 'demo';
       $('#seedBtn').hidden = D.mode !== 'demo';
+      const h = location.hash.slice(1); if (TITLES[h]) S.view = h;
       loadAll();
+      initPush();
     });
   }
 
@@ -78,6 +80,73 @@
     });
   }
   const guard = p => p.catch(err => { if (err && err.auth) showLogin(err.message); else toast('Грешка: ' + (err && err.message || err)); throw err; });
+
+  /* ====================================================================== приложение и известия */
+  const PUSH = { supported: 'serviceWorker' in navigator && 'PushManager' in window && 'Notification' in window, reg: null, sub: null, busy: false };
+  const isIOS = /iphone|ipad|ipod/i.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+  const isStandalone = () => (window.matchMedia && matchMedia('(display-mode: standalone)').matches) || navigator.standalone === true;
+  let installEvt = null;
+  window.addEventListener('beforeinstallprompt', e => { e.preventDefault(); installEvt = e; if (!appEl.hidden) render(); });
+  window.addEventListener('appinstalled', () => { installEvt = null; if (!appEl.hidden) render(); });
+  const keyBytes = s => Uint8Array.from(atob(s.replace(/-/g, '+').replace(/_/g, '/') + '==='.slice((s.length + 3) % 4)), c => c.charCodeAt(0));
+  const saveSub = sub => { const j = sub.toJSON(); return D.adminInsert('push_subscriptions', { endpoint: j.endpoint, p256dh: j.keys.p256dh, auth: j.keys.auth, user_agent: navigator.userAgent.slice(0, 280) })
+    .catch(err => { if (!(err && err.status === 409)) throw err; }); };   /* 409 = това устройство вече е записано */
+
+  function initPush() {
+    if (D.mode !== 'supabase' || !('serviceWorker' in navigator)) return;
+    navigator.serviceWorker.register('sw.js').then(reg => {
+      PUSH.reg = reg;
+      return PUSH.supported ? reg.pushManager.getSubscription() : null;
+    }).then(sub => {
+      PUSH.sub = sub;
+      if (sub) saveSub(sub).catch(() => {});   /* ако записът в базата е изчезнал, го връща */
+      render();
+    }).catch(() => {});
+  }
+  function pushOn() {
+    if (PUSH.busy) return;
+    PUSH.busy = true;
+    Notification.requestPermission().then(perm => {
+      if (perm !== 'granted') throw new Error('Известията не са разрешени за този сайт.');
+      return navigator.serviceWorker.ready;
+    }).then(reg => reg.pushManager.subscribe({ userVisibleOnly: true, applicationServerKey: keyBytes(D.vapidPublicKey) }))
+      .then(sub => { PUSH.sub = sub; return saveSub(sub); })
+      .then(() => toast('Известията са включени на това устройство'))
+      .catch(err => { if (err && err.auth) showLogin(err.message); else toast(err && err.message || 'Известията не се включиха'); })
+      .finally(() => { PUSH.busy = false; render(); });
+  }
+  function pushOff() {
+    const sub = PUSH.sub; if (!sub) return;
+    D.select('push_subscriptions', { filters: [['endpoint', 'eq', sub.endpoint]] })
+      .then(rows => Promise.all(rows.map(r => D.remove('push_subscriptions', r.id))))
+      .catch(() => {})
+      .then(() => sub.unsubscribe())
+      .then(() => { PUSH.sub = null; render(); toast('Известията са изключени на това устройство'); });
+  }
+  function pushTest() {
+    guard(D.callFunction('notify', '?test=1')).then(r => toast(r.sent ? 'Пробното известие е изпратено до ' + r.sent + ' устройства' : 'Няма устройство с включени известия'));
+  }
+  function appCard() {
+    if (D.mode !== 'supabase') return '';
+    let body, actions = '';
+    const install = installEvt ? '<button class="btn btn--ghost btn--sm" data-install>Инсталирай като приложение</button>' : '';
+    if (!PUSH.supported) {
+      body = isIOS && !isStandalone()
+        ? 'За известия на iPhone: натиснете „Сподели“ → „Към началния екран“, отворете панела от новата икона и включете известията оттам.'
+        : 'Този браузър не поддържа известия. Отворете панела в Chrome или го добавете на началния екран.';
+      actions = install;
+    } else if (Notification.permission === 'denied') {
+      body = 'Известията са забранени за този сайт. Разрешете ги от настройките на браузъра и презаредете панела.';
+      actions = install;
+    } else if (PUSH.sub) {
+      body = 'Известията са включени на това устройство — ще получавате съобщение при нова поръчка, заявка за абонамент или запитване.';
+      actions = '<button class="btn btn--ghost btn--sm" data-push="test">Изпрати пробно известие</button><button class="btn btn--ghost btn--sm" data-push="off">Изключи</button>' + install;
+    } else {
+      body = 'Получавайте известие на това устройство при нова поръчка, заявка за абонамент или запитване.';
+      actions = '<button class="btn btn--green btn--sm" data-push="on">Включи известията</button>' + install;
+    }
+    return `<div class="card appcard"><div class="appcard__text"><b>Известия на телефона</b><span>${body}</span></div><div class="actions">${actions}</div></div>`;
+  }
 
   /* ====================================================================== статистика */
   function analyze(events) {
@@ -226,7 +295,7 @@
     const mrr = active.reduce((a, s) => a + (+s.price || 0), 0);
     const newOrders = S.orders.filter(o => o.status === 'new').length;
     const rem = reminders();
-    return (rem.length ? remindCard(rem) : '') +
+    return appCard() + (rem.length ? remindCard(rem) : '') +
       `<div class="tiles">
         <div class="tile${newOrders ? ' tile--accent' : ''}"><span class="tile__label">Нови поръчки</span><span class="tile__value">${num(newOrders)}</span><span class="tile__sub">чакат потвърждение</span></div>
         <div class="tile"><span class="tile__label">Поръчки</span><span class="tile__value">${num(ordersIn.length)}</span><span class="tile__sub">${rangeLabel()}</span></div>
@@ -481,10 +550,12 @@
   function toast(msg) { const t = $('#toast'); t.textContent = msg; t.classList.add('show'); clearTimeout(toastT); toastT = setTimeout(() => t.classList.remove('show'), 2600); }
 
   document.addEventListener('click', e => {
-    const t = e.target.closest('[data-view],[data-go],[data-range],[data-order],[data-sub],[data-close-drawer],[data-ofilter],[data-csv],[data-ics],[data-cal],[data-deliver],[data-ostatus],[data-onote],[data-odel],[data-sstatus],[data-ssave],[data-sdel],[data-msgread],[data-msgdel]');
+    const t = e.target.closest('[data-view],[data-go],[data-range],[data-order],[data-sub],[data-close-drawer],[data-ofilter],[data-csv],[data-ics],[data-cal],[data-deliver],[data-ostatus],[data-onote],[data-odel],[data-sstatus],[data-ssave],[data-sdel],[data-msgread],[data-msgdel],[data-push],[data-install]');
     if (!t) return;
     const ds = t.dataset;
-    if (ds.view || ds.go) { S.view = ds.view || ds.go; render(); window.scrollTo(0, 0); }
+    if (ds.view || ds.go) { S.view = ds.view || ds.go; try { history.replaceState(null, '', '#' + S.view); } catch (err) {} render(); window.scrollTo(0, 0); }
+    else if (ds.push) ({ on: pushOn, off: pushOff, test: pushTest })[ds.push]();
+    else if ('install' in ds) { if (installEvt) { installEvt.prompt(); installEvt = null; } }
     else if (ds.range) { S.range = +ds.range; $$('#range button').forEach(b => b.classList.toggle('active', b === t)); loadAll(); }
     else if ('closeDrawer' in ds) closeDrawer();
     else if (ds.deliver) { const p = ds.deliver.split('|'); toggleDelivered(p[0], p[1]); }
@@ -642,6 +713,8 @@
     S.calMonth = null;
     loadAll().then(() => toast('Заредени са примерни данни'));
   });
+
+  window.addEventListener('hashchange', () => { const h = location.hash.slice(1); if (TITLES[h] && !appEl.hidden) { S.view = h; loadAll(); } });
 
   start();
 })();
