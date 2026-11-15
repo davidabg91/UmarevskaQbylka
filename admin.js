@@ -517,6 +517,30 @@
     render();
     const n = $('#orderSearch'); if (n) { n.focus(); n.setSelectionRange(pos, pos); }
   });
+  /* --- смяна на парола --- */
+  $('#pwBtn').addEventListener('click', () => {
+    openDrawer(`<div class="drawer__head"><div><h2>Смяна на парола</h2><span class="note">за входа в админ панела</span></div><button class="drawer__close" data-close-drawer aria-label="Затвори">✕</button></div>
+      <form id="pwForm" style="display:flex;flex-direction:column;gap:1rem">
+        <label class="field">Нова парола<input type="password" name="p1" autocomplete="new-password" minlength="8" required /></label>
+        <label class="field">Повторете новата парола<input type="password" name="p2" autocomplete="new-password" minlength="8" required /></label>
+        <p class="note">Поне 8 знака. След смяната оставате влезли на това устройство.</p>
+        <p class="login__error" id="pwError" role="alert" hidden></p>
+        <div class="actions"><button type="submit" class="btn btn--primary btn--sm">Запази новата парола</button></div>
+      </form>`);
+  });
+  document.addEventListener('submit', e => {
+    if (e.target.id !== 'pwForm') return;
+    e.preventDefault();
+    const f = e.target, err = $('#pwError'), btn = f.querySelector('button[type="submit"]');
+    const show = m => { err.textContent = m; err.hidden = false; };
+    err.hidden = true;
+    if (f.p1.value !== f.p2.value) return show('Двете пароли не съвпадат.');
+    btn.disabled = true;
+    D.updatePassword(f.p1.value).then(() => { closeDrawer(); toast('Паролата е сменена'); })
+      .catch(er => { if (er && er.auth) showLogin(er.message); else show(er && er.message || 'Паролата не беше сменена.'); })
+      .finally(() => { btn.disabled = false; });
+  });
+
   $('#refreshBtn').addEventListener('click', () => loadAll().then(() => toast('Данните са обновени')));
 
   /* ====================================================================== рисуване */

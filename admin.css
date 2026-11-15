@@ -219,6 +219,8 @@ details.tableview table{margin-top:.6rem}
   .side__nav button{width:auto;white-space:nowrap;padding:.55rem .75rem;font-size:.85rem}
   .side__foot{flex-direction:row;align-items:center;gap:.7rem;border:0;padding:0;flex:0 0 auto}
   .side__user,.side__foot #seedBtn{display:none}
+  .side__foot{gap:.5rem}
+  .side__foot .linkbtn{font-size:.74rem;white-space:nowrap}
   .card__head{flex-wrap:wrap}
   .cal{gap:2px}
   .grid2{grid-template-columns:1fr}

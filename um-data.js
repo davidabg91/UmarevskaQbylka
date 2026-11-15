@@ -123,6 +123,14 @@
       return Promise.resolve();
     },
     getSession: getSession,
+    /* собственикът сменя собствената си парола (въвежда я сам в панела) */
+    updatePassword: function (password) {
+      if (mode !== 'supabase') return Promise.reject(new Error('Смяната на парола работи само с истинската база.'));
+      return authed(function (s) {
+        return fetch(BASE + '/auth/v1/user', { method: 'PUT', headers: headers(s.access_token), body: JSON.stringify({ password: password }) })
+          .then(function (r) { return r.ok ? true : fail(r); });
+      });
+    },
 
     /* --- админ: четене/промяна --- */
     /* q: { columns, filters:[[col,op,val]], order:'created_at.desc', limit } — без limit чете всичко на страници */
