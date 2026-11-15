@@ -504,9 +504,40 @@ renderCart();
   var vel = 0, lastY = window.scrollY;
   var ticking = false;
 
+  /* ВАЖНО за плавността: стойностите се записват само върху елементите, които ги
+     ползват (не върху <html> или цялата секция) и само когато са се променили.
+     CSS променлива върху родител кара браузъра да преизчисли стила на всичките му деца. */
+  var progressEl = document.querySelector('.progress');
+  var heroParts = hero ? Array.prototype.slice.call(hero.querySelectorAll('.hero__media,.hero__overlay,.hero__meta,.hero__scroll')) : [];
+  var heroContent = hero ? hero.querySelector('.hero__content') : null; /* има много деца → директен стил, без променлива */
+  var footWord = footer ? footer.querySelector('.footer__word') : null;
+  var lastProgress = '', lastHp = '';
+
+  function setVar(el, name, val){
+    var cache = el._fxv || (el._fxv = {});
+    if (cache[name] === val) return;
+    cache[name] = val;
+    el.style.setProperty(name, val);
+  }
+  function setTransform(el, val){
+    if (el._fxt === val) return;
+    el._fxt = val;
+    el.style.transform = val;
+  }
+
   var fxEls = Array.prototype.map.call(document.querySelectorAll('[data-fx]'), function(el){
-    return { el: el, curve: el.querySelector(':scope > .curve path') };
+    return {
+      el: el,
+      curve: el.querySelector(':scope > .curve path'),
+      lastD: '',
+      /* елементи с паралакс по --p */
+      targets: Array.prototype.slice.call(el.querySelectorAll('.ghost,.story__video,.values__deco,.sub__deco')),
+      /* панели, които „порастват“ при влизане */
+      grow: el.classList.contains('values') ? { el: el, from: 0.9 } :
+            el.querySelector('.contact__card') ? { el: el.querySelector('.contact__card'), from: 0.88 } : null
+    };
   });
+  if (FX && isHome) root.classList.add('at-top');
 
   /* --- footer reveal: подвалът стои неподвижно под листа --- */
   function measureFooter(){
@@ -532,31 +563,46 @@ renderCart();
     if (nav && !nav.classList.contains('nav--solid')) nav.classList.toggle('scrolled', y > 40);
     if (!FX) return;
 
-    root.style.setProperty('--scroll', max > 0 ? clamp01(y / max).toFixed(4) : 0);
+    if (progressEl) {
+      var pr = 'scaleX(' + (max > 0 ? clamp01(y / max).toFixed(4) : 0) + ')';
+      if (pr !== lastProgress) { lastProgress = pr; progressEl.style.transform = pr; }
+    }
 
     if (isHome) {
-      hero.style.setProperty('--hp', clamp01(y / vh).toFixed(3));
       var off = y > vh * 1.15;
       if (off !== heroOff) {
         heroOff = off;
         hero.style.visibility = off ? 'hidden' : '';
         if (heroVideo) { if (off) heroVideo.pause(); else heroVideo.play().catch(function(){}); }
+        root.classList.toggle('at-top', !off);
       }
-      root.classList.toggle('at-top', !off);
+      var hp = clamp01(y / vh).toFixed(3);
+      if (hp !== lastHp) {
+        lastHp = hp;
+        for (var h = 0; h < heroParts.length; h++) heroParts[h].style.setProperty('--hp', hp);
+        if (heroContent) {
+          heroContent.style.transform = 'translate3d(0,' + (hp * -110).toFixed(1) + 'px,0) scale(' + (1 - hp * 0.1).toFixed(4) + ')';
+          heroContent.style.opacity = Math.max(0, 1 - hp * 1.6).toFixed(3);
+        }
+      }
     }
 
-    for (var i = 0; i < fxEls.length; i++) {
-      var o = fxEls[i];
-      var r = o.el.getBoundingClientRect();
-      if (r.bottom < -vh || r.top > vh * 2) continue;
-      var p = clamp01((vh - r.top) / (vh + r.height));
+    /* всички четения на размери наведнъж, после всички записи (без layout thrashing) */
+    var rects = [];
+    for (var i = 0; i < fxEls.length; i++) rects.push(fxEls[i].el.getBoundingClientRect());
+    for (var j = 0; j < fxEls.length; j++) {
+      var o = fxEls[j], r = rects[j];
+      var p = clamp01((vh - r.top) / (vh + r.height)).toFixed(3);
       var e = clamp01((vh - r.top) / (vh * 0.8));
-      o.el.style.setProperty('--p', p.toFixed(3));
-      o.el.style.setProperty('--e', e.toFixed(3));
-      if (o.curve) o.curve.setAttribute('d', 'M0 100 Q50 ' + (100 - 200 * (1 - e)).toFixed(1) + ' 100 100Z');
+      for (var t = 0; t < o.targets.length; t++) setVar(o.targets[t], '--p', p);
+      if (o.grow) setTransform(o.grow.el, 'scale(' + (o.grow.from + (1 - o.grow.from) * e).toFixed(4) + ')');
+      if (o.curve) {
+        var d = 'M0 100 Q50 ' + (100 - 200 * (1 - e)).toFixed(1) + ' 100 100Z';
+        if (d !== o.lastD) { o.lastD = d; o.curve.setAttribute('d', d); }
+      }
     }
 
-    if (footer && footerH) footer.style.setProperty('--fp', clamp01(1 - (max - y) / footerH).toFixed(3));
+    if (footWord && footerH) setVar(footWord, '--fp', clamp01(1 - (max - y) / footerH).toFixed(3));
   }
   function onScroll(){ if (!ticking) { ticking = true; requestAnimationFrame(frame); } }
 
@@ -574,7 +620,7 @@ renderCart();
   if (storyVideo && 'IntersectionObserver' in window) {
     new IntersectionObserver(function(en){
       if (en[0].isIntersecting) storyVideo.play().catch(function(){}); else storyVideo.pause();
-    }, { rootMargin: '200px 0px' }).observe(storyVideo);
+    }, { rootMargin: '500px 0px' }).observe(storyVideo);
   }
 
   /* --- активен линк в навигацията --- */

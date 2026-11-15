@@ -24,7 +24,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Caveat:wght@500;700&family=Manrope:wght@400;500;600;700;800&family=Playfair+Display:ital,wght@0,500;0,600;0,700;0,800;1,500;1,600&display=swap" rel="stylesheet" />
-  <link rel="stylesheet" href="styles.css?v=21" />
+  <link rel="stylesheet" href="styles.css?v=22" />
   <link rel="icon" href="img/logo.png" />
 </head>
 <body class="loading">
@@ -134,7 +134,7 @@
     <div class="story__media reveal-media">
       <div class="story__media-frame"></div>
       <div class="story__frame">
-        <video class="story__video" autoplay muted loop playsinline>
+        <video class="story__video" muted loop playsinline preload="none">
           <source src="19666848-uhd_3840_2160_24fps.mp4" type="video/mp4" />
         </video>
       </div>
@@ -505,12 +505,9 @@
   <!-- ===== BLOG ===== -->
   <section class="blog" id="blog" data-fx>
     <div class="wave" aria-hidden="true">
-      <svg viewBox="0 0 2400 120" preserveAspectRatio="none">
-        <defs><path id="wavePath" d="M0 70 C150 20 450 20 600 70 S1050 120 1200 70 S1650 20 1800 70 S2250 120 2400 70 V120 H0Z"/></defs>
-        <use href="#wavePath" class="wave__l wave__l--1"/>
-        <use href="#wavePath" class="wave__l wave__l--2"/>
-        <use href="#wavePath" class="wave__l wave__l--3"/>
-      </svg>
+      <svg class="wave__l wave__l--1" viewBox="0 0 2400 120" preserveAspectRatio="none"><path d="M0 70 C150 20 450 20 600 70 S1050 120 1200 70 S1650 20 1800 70 S2250 120 2400 70 V170 H0Z"/></svg>
+      <svg class="wave__l wave__l--2" viewBox="0 0 2400 120" preserveAspectRatio="none"><path d="M0 70 C150 20 450 20 600 70 S1050 120 1200 70 S1650 20 1800 70 S2250 120 2400 70 V170 H0Z"/></svg>
+      <svg class="wave__l wave__l--3" viewBox="0 0 2400 120" preserveAspectRatio="none"><path d="M0 70 C150 20 450 20 600 70 S1050 120 1200 70 S1650 20 1800 70 S2250 120 2400 70 V170 H0Z"/></svg>
     </div>
     <span class="ghost" aria-hidden="true">Блог</span>
     <div class="section-head">
@@ -725,6 +722,6 @@
   </div>
 
   <script src="articles.js?v=11"></script>
-  <script src="script.js?v=20"></script>
+  <script src="script.js?v=22"></script>
 </body>
 </html>
