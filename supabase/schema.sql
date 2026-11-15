@@ -263,6 +263,87 @@ alter table public.orders drop constraint if exists orders_delivery_check;
 alter table public.orders add constraint orders_delivery_check check (delivery in ('office', 'address', 'pickup'));
 
 -- ============================================================================
+--  Каталог: продукти, абонаментни планове, настройки (промо лента) и снимки
+--  Редактират се от админ панела; сайтът ги чете с публичния ключ.
+-- ============================================================================
+create table if not exists public.products (
+  id            uuid primary key default gen_random_uuid(),
+  created_at    timestamptz not null default now(),
+  sort          integer not null default 0,
+  active        boolean not null default true,
+  name          text not null check (char_length(name) between 1 and 120),
+  description   text check (char_length(description) <= 600),
+  tag           text check (char_length(tag) <= 80),
+  color         text not null default '#c1272d' check (color ~ '^#[0-9a-fA-F]{6}$'),
+  image_url     text check (char_length(image_url) <= 600),
+  category      text not null default 'variety' check (category in ('variety', 'mix-juice')),
+  sale_type     text not null default 'kg' check (sale_type in ('kg', 'unit')),
+  price         numeric(8,2) not null check (price >= 0 and price < 10000),
+  weights       jsonb not null default '[5,10,20]'::jsonb,
+  unit_label    text not null default 'бр.' check (char_length(unit_label) <= 20),
+  unit_kg       numeric(6,2) not null default 1 check (unit_kg >= 0 and unit_kg < 1000),
+  featured      boolean not null default false,
+  badge         text check (char_length(badge) <= 60),
+  lead          text check (char_length(lead) <= 800),
+  note          text check (char_length(note) <= 60),
+  bullets       jsonb not null default '[]'::jsonb,
+  promo_percent numeric(5,2) check (promo_percent >= 0 and promo_percent <= 90),
+  promo_label   text check (char_length(promo_label) <= 40),
+  promo_until   date
+);
+create table if not exists public.plans (
+  id          uuid primary key default gen_random_uuid(),
+  created_at  timestamptz not null default now(),
+  sort        integer not null default 0,
+  active      boolean not null default true,
+  tier        text not null check (char_length(tier) between 1 and 40),
+  title       text not null check (char_length(title) between 1 and 80),
+  kg          numeric(6,1) not null default 0 check (kg >= 0 and kg < 10000),
+  price       numeric(8,2) not null check (price >= 0 and price < 10000),
+  description text check (char_length(description) <= 400),
+  perks       jsonb not null default '[]'::jsonb,
+  save_note   text check (char_length(save_note) <= 120),
+  badge       text check (char_length(badge) <= 40),
+  hot         boolean not null default false,
+  image_url   text check (char_length(image_url) <= 600)
+);
+create table if not exists public.site_settings (
+  key   text primary key check (char_length(key) <= 60),
+  value jsonb not null
+);
+alter table public.products      enable row level security;
+alter table public.plans         enable row level security;
+alter table public.site_settings enable row level security;
+grant select on public.products, public.plans, public.site_settings to anon, authenticated;
+grant insert, update, delete on public.products, public.plans, public.site_settings to authenticated;
+
+drop policy if exists "public read products" on public.products;
+create policy "public read products" on public.products for select to anon, authenticated using (active);
+drop policy if exists "admin write products" on public.products;
+create policy "admin write products" on public.products for all to authenticated using (public.is_admin()) with check (public.is_admin());
+drop policy if exists "public read plans" on public.plans;
+create policy "public read plans" on public.plans for select to anon, authenticated using (active);
+drop policy if exists "admin write plans" on public.plans;
+create policy "admin write plans" on public.plans for all to authenticated using (public.is_admin()) with check (public.is_admin());
+drop policy if exists "public read settings" on public.site_settings;
+create policy "public read settings" on public.site_settings for select to anon, authenticated using (true);
+drop policy if exists "admin write settings" on public.site_settings;
+create policy "admin write settings" on public.site_settings for all to authenticated using (public.is_admin()) with check (public.is_admin());
+
+-- снимки на продуктите: публично четене през адреса на файла, качване само от администратора
+insert into storage.buckets (id, name, public, file_size_limit, allowed_mime_types)
+values ('products', 'products', true, 5242880, array['image/jpeg', 'image/png', 'image/webp'])
+on conflict (id) do nothing;
+drop policy if exists "admin read product images" on storage.objects;
+create policy "admin read product images" on storage.objects for select to authenticated using (bucket_id = 'products' and public.is_admin());
+drop policy if exists "admin upload product images" on storage.objects;
+create policy "admin upload product images" on storage.objects for insert to authenticated with check (bucket_id = 'products' and public.is_admin());
+drop policy if exists "admin update product images" on storage.objects;
+create policy "admin update product images" on storage.objects for update to authenticated using (bucket_id = 'products' and public.is_admin()) with check (bucket_id = 'products' and public.is_admin());
+drop policy if exists "admin delete product images" on storage.objects;
+create policy "admin delete product images" on storage.objects for delete to authenticated using (bucket_id = 'products' and public.is_admin());
+
+-- ============================================================================
 --  Администраторът се добавя ОТДЕЛНО (имейлът не стои в този публичен файл):
 --     insert into public.admins (email) values ('имейл-на-собственика');
 --  Същият имейл трябва да има потребител в Authentication → Users.

@@ -23,7 +23,7 @@
   const SECTIONS = { hero: 'Начален екран', story: 'Нашата история', values: 'Нашето обещание', shop: 'Магазин', subscribe: 'Абонамент',
     gallery: 'Галерия', media: 'В медиите', blog: 'Блог', locations: 'Обекти', contact: 'Контакти', footer: 'Футър', article: 'Статии от блога' };
   const DEVICES = { mobile: 'Телефон', tablet: 'Таблет', desktop: 'Компютър' };
-  const TITLES = { home: 'Табло', orders: 'Поръчки', subs: 'Абонаменти', calendar: 'Доставки по абонаменти', messages: 'Запитвания', stats: 'Статистика', carts: 'Изоставени кошници' };
+  const TITLES = { home: 'Табло', orders: 'Поръчки', subs: 'Абонаменти', calendar: 'Доставки по абонаменти', messages: 'Запитвания', stats: 'Статистика', carts: 'Изоставени кошници', products: 'Продукти и промоции', plans: 'Абонаментни планове' };
   const COURIER = { econt: 'Еконт', speedy: 'Спиди', pigeon: 'Pigeon Express' };
   /* как и къде се получава поръчката — с думи */
   const deliveryText = o => o.delivery === 'pickup' ? 'Вземане от обект: ' + (o.pickup_place || '—')
@@ -32,7 +32,7 @@
   const shipText = o => o.delivery === 'pickup' ? 'няма' : o.delivery_price != null ? money(o.delivery_price) : 'уточнява се';
   const badge = (map, st) => { const m = map[st] || [st, 'off']; return `<span class="badge badge--${m[1]}">${esc(m[0])}</span>`; };
 
-  const S = { view: 'home', range: 7, orders: [], subs: [], msgs: [], deliveries: [], events: [], stats: null,
+  const S = { view: 'home', range: 7, orders: [], subs: [], msgs: [], deliveries: [], events: [], stats: null, products: [], plans: [], banner: null,
               orderFilter: 'all', orderSearch: '', calMonth: null };
 
   /* ====================================================================== вход */
@@ -76,9 +76,13 @@
     return Promise.all([
       D.select('orders'), D.select('subscriptions'), D.select('messages'), D.select('sub_deliveries'),
       D.select('events', { filters: [['created_at', 'gte', from]], order: 'created_at.asc',
-        columns: 'created_at,session_id,visitor_id,type,name,path,device,referrer,data' })
+        columns: 'created_at,session_id,visitor_id,type,name,path,device,referrer,data' }),
+      D.select('products', { order: 'sort.asc' }), D.select('plans', { order: 'sort.asc' }),
+      D.select('site_settings', { order: 'key.asc' })
     ]).then(r => {
       S.orders = r[0]; S.subs = r[1]; S.msgs = r[2]; S.deliveries = r[3]; S.events = r[4];
+      S.products = r[5]; S.plans = r[6];
+      const bn = (r[7] || []).find(x => x.key === 'promo_banner'); S.banner = bn ? bn.value : null;
       S.stats = analyze(S.events);
       render();
     }).catch(err => {
@@ -487,6 +491,220 @@
         : '<div class="empty">Няма изоставени кошници за този период.</div>') + '</div>';
   }
 
+  /* ====================================================================== продукти, промоции и планове */
+  const CATS = { variety: 'Сортове ябълки', 'mix-juice': 'Сок и миксове' };
+  const todayKey = () => dayKey(new Date());
+  const promoOn = p => +p.promo_percent > 0 && (!p.promo_until || p.promo_until >= todayKey());
+  const priceNow = p => Math.round(p.price * (100 - (promoOn(p) ? +p.promo_percent : 0))) / 100;
+  const priceLine = p => p.sale_type === 'kg'
+    ? money(priceNow(p)) + ' / кг · ' + ((p.weights || []).join(', ') || '—') + ' кг'
+    : money(priceNow(p)) + ' / ' + (p.unit_label || 'бр.');
+  const lines = v => String(v || '').split('\n').map(x => x.trim()).filter(Boolean);
+  const val = id => { const el = $('#' + id); return el ? el.value.trim() : ''; };
+  const checked = id => { const el = $('#' + id); return !!(el && el.checked); };
+  const numOr = (v, d) => { const n = parseFloat(String(v).replace(',', '.')); return isFinite(n) ? n : d; };
+
+  function viewProducts() {
+    const b = S.banner || { active: false, text: '', until: null };
+    const promos = S.products.filter(promoOn).length;
+    return `<div class="card">
+        <div class="card__head"><h2>Промоционална лента</h2><small>показва се над продуктите в магазина</small></div>
+        <div class="fields2">
+          <label class="field">Текст на промоцията<input id="bnText" maxlength="160" value="${esc(b.text || '')}" placeholder="напр. −10% на всички сортове до неделя" /></label>
+          <label class="field">Валидна до (по желание)<input id="bnUntil" type="date" value="${esc(b.until || '')}" /></label>
+        </div>
+        <div class="actions" style="margin-top:.9rem;align-items:center">
+          <label class="check"><input type="checkbox" id="bnActive"${b.active ? ' checked' : ''} /> Показвай лентата на сайта</label>
+          <button class="btn btn--primary btn--sm" data-bnsave>Запази лентата</button>
+        </div>
+      </div>
+      <div class="card"><div class="card__head"><h2>Продукти</h2><div class="actions"><small>${num(S.products.length)} продукта · ${num(promos)} в промоция</small>
+          <button class="btn btn--green btn--sm" data-pnew>+ Нов продукт</button></div></div>
+        ${S.products.length ? `<div class="pgrid">${S.products.map(p => `<button class="pcard${p.active ? '' : ' pcard--off'}" data-product="${esc(p.id)}">
+            <span class="pcard__img"><img src="${esc(p.image_url || 'img/apples.jpg')}" alt="" loading="lazy" /></span>
+            <span class="pcard__body"><b>${esc(p.name)}</b><span>${esc(priceLine(p))}</span>
+              <span class="pcard__tags">${p.active ? '' : badge({ x: ['Скрит', 'off'] }, 'x')}${promoOn(p) ? badge({ x: ['Промоция −' + String(+p.promo_percent).replace('.', ',') + '%', 'new'] }, 'x') : ''}${p.featured ? badge({ x: ['Голяма карта', 'info'] }, 'x') : ''}</span></span>
+          </button>`).join('')}</div>` : '<div class="empty">Още няма продукти. Натиснете „Нов продукт“.</div>'}
+      </div>`;
+  }
+  function productDrawer(id) {
+    const p = id ? S.products.find(x => x.id === id) : null;
+    const d = p || { name: '', description: '', tag: '', color: '#c1272d', image_url: '', category: 'variety', sale_type: 'kg', price: 2, weights: [5, 10, 20],
+      unit_label: 'бр.', unit_kg: 1, featured: false, badge: '', lead: '', note: '', bullets: [], promo_percent: null, promo_label: '', promo_until: null, active: true,
+      sort: (S.products.reduce((m, x) => Math.max(m, +x.sort || 0), 0) + 10) };
+    openDrawer(`<div class="drawer__head"><div><h2>${p ? esc(p.name) : 'Нов продукт'}</h2><span class="note">${p ? 'промените се виждат на сайта веднага след запазване' : 'попълнете и запазете'}</span></div><button class="drawer__close" data-close-drawer aria-label="Затвори">✕</button></div>
+      <div class="upload"><img id="pImgPrev" src="${esc(d.image_url || 'img/apples.jpg')}" alt="" />
+        <label class="btn btn--ghost btn--sm">Смени снимката<input type="file" id="pImg" accept="image/*" hidden /></label>
+        <span class="note">Снимката се смалява автоматично преди качване.</span></div>
+      <label class="field">Име<input id="pName" maxlength="120" value="${esc(d.name)}" /></label>
+      <label class="field">Описание<textarea id="pDesc" maxlength="600">${esc(d.description || '')}</textarea></label>
+      <div class="fields2">
+        <label class="field">Етикет върху снимката<input id="pTag" maxlength="80" value="${esc(d.tag || '')}" placeholder="напр. Сладка · Хрупкава" /></label>
+        <label class="field">Раздел в магазина<select id="pCat">${Object.keys(CATS).map(k => `<option value="${k}"${d.category === k ? ' selected' : ''}>${CATS[k]}</option>`).join('')}</select></label>
+      </div>
+      <div class="fields2">
+        <label class="field">Продава се<select id="pSale"><option value="kg"${d.sale_type === 'kg' ? ' selected' : ''}>На килограм (с грамажи)</option><option value="unit"${d.sale_type === 'unit' ? ' selected' : ''}>На брой</option></select></label>
+        <label class="field"><span id="pPriceLbl">Цена</span><input id="pPrice" inputmode="decimal" value="${esc(String(d.price).replace('.', ','))}" /></label>
+      </div>
+      <div data-sale="kg"><label class="field">Грамажи за избор (кг, разделени със запетая)<input id="pWeights" value="${esc((d.weights || []).join(', '))}" placeholder="5, 10, 20" /></label></div>
+      <div data-sale="unit" class="fields2">
+        <label class="field">Мерна единица<input id="pUnit" maxlength="20" value="${esc(d.unit_label || 'бр.')}" placeholder="бр." /></label>
+        <label class="field">Тегло на 1 бр. в кг (за доставката)<input id="pUnitKg" inputmode="decimal" value="${esc(String(d.unit_kg == null ? 1 : d.unit_kg).replace('.', ','))}" /></label>
+      </div>
+      <fieldset class="fieldset"><legend>Промоция</legend>
+        <div class="fields2">
+          <label class="field">Намаление в %<input id="pPromo" inputmode="decimal" value="${d.promo_percent ? esc(String(+d.promo_percent).replace('.', ',')) : ''}" placeholder="напр. 15" /></label>
+          <label class="field">Валидна до (по желание)<input id="pPromoUntil" type="date" value="${esc(d.promo_until || '')}" /></label>
+        </div>
+        <label class="field">Надпис на значката (по желание)<input id="pPromoLabel" maxlength="40" value="${esc(d.promo_label || '')}" placeholder="ако е празно, излиза „−15%“" /></label>
+        <p class="note" id="pPromoNote"></p>
+      </fieldset>
+      <fieldset class="fieldset"><legend>Голяма карта (като сока)</legend>
+        <label class="check"><input type="checkbox" id="pFeat"${d.featured ? ' checked' : ''} /> Покажи продукта като голяма карта на цял ред</label>
+        <div data-feat>
+          <div class="fields2">
+            <label class="field">Значка над името<input id="pBadge" maxlength="60" value="${esc(d.badge || '')}" placeholder="Премиум продукт" /></label>
+            <label class="field">Стикер върху снимката<input id="pNote" maxlength="60" value="${esc(d.note || '')}" placeholder="без добавена захар!" /></label>
+          </div>
+          <label class="field">Въвеждащ текст<textarea id="pLead" maxlength="800">${esc(d.lead || '')}</textarea></label>
+          <label class="field">Акценти — по един на ред: Заглавие | текст<textarea id="pBullets" style="min-height:120px">${esc((d.bullets || []).map(b => (b.title || '') + ' | ' + (b.text || '')).join('\n'))}</textarea></label>
+        </div>
+      </fieldset>
+      <div class="fields2">
+        <label class="field">Цвят на рамката<input id="pColor" type="color" value="${esc(/^#[0-9a-f]{6}$/i.test(d.color || '') ? d.color : '#c1272d')}" /></label>
+        <label class="field">Подредба (по-малко = по-напред)<input id="pSort" inputmode="numeric" value="${esc(d.sort)}" /></label>
+      </div>
+      <label class="check"><input type="checkbox" id="pActive"${d.active ? ' checked' : ''} /> Показвай продукта в магазина</label>
+      <p class="login__error" id="pError" role="alert" hidden></p>
+      <div class="actions"><button class="btn btn--primary btn--sm" data-psave="${p ? esc(p.id) : ''}">Запази продукта</button>
+        ${p ? `<button class="btn btn--danger btn--sm" data-pdel="${esc(p.id)}">Изтрий</button>` : ''}</div>`);
+    syncProductForm();
+  }
+  function syncProductForm() {
+    if (!$('#pSale')) return;
+    const kg = $('#pSale').value === 'kg';
+    $$('[data-sale]').forEach(el => { el.hidden = el.dataset.sale !== (kg ? 'kg' : 'unit'); });
+    $('#pPriceLbl').textContent = kg ? 'Цена за 1 кг (€)' : 'Цена за 1 бр. (€)';
+    $$('[data-feat]').forEach(el => { el.hidden = !checked('pFeat'); });
+    const price = numOr(val('pPrice'), 0), pr = numOr(val('pPromo'), 0);
+    $('#pPromoNote').textContent = pr > 0 ? 'Цена с намалението: ' + money(Math.round(price * (100 - pr)) / 100) + (kg ? ' / кг' : '') + ' вместо ' + money(price) : 'Без промоция.';
+  }
+  /* смалява снимката в браузъра (до 1400 px) преди качване */
+  function shrinkImage(file) {
+    return new Promise((resolve, reject) => {
+      const img = new Image();
+      img.onload = () => {
+        const k = Math.min(1, 1400 / Math.max(img.naturalWidth, img.naturalHeight));
+        const c = document.createElement('canvas');
+        c.width = Math.round(img.naturalWidth * k); c.height = Math.round(img.naturalHeight * k);
+        c.getContext('2d').drawImage(img, 0, 0, c.width, c.height);
+        URL.revokeObjectURL(img.src);
+        c.toBlob(b => b ? resolve(b) : reject(new Error('Снимката не можа да се обработи.')), 'image/jpeg', 0.86);
+      };
+      img.onerror = () => reject(new Error('Файлът не е снимка.'));
+      img.src = URL.createObjectURL(file);
+    });
+  }
+  function uploadPicked(inputId, prefix) {
+    const f = $('#' + inputId) && $('#' + inputId).files[0];
+    if (!f) return Promise.resolve(null);
+    return shrinkImage(f).then(blob => D.upload('products', prefix + '-' + Date.now().toString(36) + '.jpg', blob));
+  }
+  function saveProduct(id) {
+    const err = $('#pError'), show = m => { err.textContent = m; err.hidden = false; };
+    err.hidden = true;
+    const kg = val('pSale') === 'kg';
+    const weights = val('pWeights').split(/[,;\s]+/).map(x => numOr(x, 0)).filter(x => x > 0);
+    const promo = numOr(val('pPromo'), 0);
+    const row = {
+      name: val('pName'), description: val('pDesc') || null, tag: val('pTag') || null, category: val('pCat'), sale_type: kg ? 'kg' : 'unit',
+      price: numOr(val('pPrice'), -1), weights: kg ? weights : [], unit_label: val('pUnit') || 'бр.', unit_kg: numOr(val('pUnitKg'), 1),
+      promo_percent: promo > 0 ? promo : null, promo_label: val('pPromoLabel') || null, promo_until: val('pPromoUntil') || null,
+      featured: checked('pFeat'), badge: val('pBadge') || null, note: val('pNote') || null, lead: val('pLead') || null,
+      bullets: lines($('#pBullets').value).map((l, i) => { const k = l.indexOf('|'); return { icon: ['drop', 'shield', 'box'][i % 3], title: (k < 0 ? l : l.slice(0, k)).trim(), text: k < 0 ? '' : l.slice(k + 1).trim() }; }),
+      color: val('pColor') || '#c1272d', sort: Math.round(numOr(val('pSort'), 0)), active: checked('pActive')
+    };
+    if (!row.name) return show('Въведете име на продукта.');
+    if (row.price < 0) return show('Въведете цена.');
+    if (kg && !weights.length) return show('Въведете поне един грамаж, напр. 5, 10, 20.');
+    if (promo > 90) return show('Намалението може да е най-много 90%.');
+    const btn = $('[data-psave]'); btn.disabled = true;
+    guard(uploadPicked('pImg', 'product').then(url => {
+      if (url) row.image_url = url;
+      return id ? D.update('products', id, row) : D.adminInsert('products', row);
+    }).then(() => D.select('products', { order: 'sort.asc' })))
+      .then(rows => { S.products = rows; closeDrawer(); render(); toast('Продуктът е запазен'); })
+      .catch(e => { btn.disabled = false; if (!(e && e.auth)) show(e && e.message || 'Продуктът не беше запазен.'); });
+  }
+
+  function viewPlans() {
+    return `<div class="card"><div class="card__head"><h2>Абонаментни планове</h2><div class="actions"><small>показват се в раздел „Абонамент“ на сайта</small>
+        <button class="btn btn--green btn--sm" data-plnew>+ Нов план</button></div></div>
+      ${S.plans.length ? `<div class="pgrid">${S.plans.map(p => `<button class="pcard${p.active ? '' : ' pcard--off'}" data-plan="${esc(p.id)}">
+          <span class="pcard__img"><img src="${esc(p.image_url || 'img/apples.jpg')}" alt="" loading="lazy" /></span>
+          <span class="pcard__body"><b>${esc(p.tier)} — ${esc(p.title)}</b><span>${money(p.price)} на месец · ${esc(String(p.kg).replace('.', ','))} кг</span>
+            <span class="pcard__tags">${p.active ? '' : badge({ x: ['Скрит', 'off'] }, 'x')}${p.hot ? badge({ x: ['Откроен', 'warn'] }, 'x') : ''}${p.badge ? badge({ x: [p.badge, 'info'] }, 'x') : ''}</span></span>
+        </button>`).join('')}</div>` : '<div class="empty">Още няма планове.</div>'}
+      <p class="note" style="margin-top:1rem">Промяната на план не засяга вече записаните абонати — те остават с цената, на която са се записали.</p></div>`;
+  }
+  function planDrawer(id) {
+    const p = id ? S.plans.find(x => x.id === id) : null;
+    const d = p || { tier: '', title: '', kg: 10, price: 18, description: '', perks: [], save_note: '', badge: '', hot: false, image_url: '', active: true,
+      sort: (S.plans.reduce((m, x) => Math.max(m, +x.sort || 0), 0) + 10) };
+    openDrawer(`<div class="drawer__head"><div><h2>${p ? esc(p.tier) : 'Нов план'}</h2><span class="note">абонаментен план</span></div><button class="drawer__close" data-close-drawer aria-label="Затвори">✕</button></div>
+      <div class="upload"><img id="plImgPrev" src="${esc(d.image_url || 'img/apples.jpg')}" alt="" />
+        <label class="btn btn--ghost btn--sm">Смени снимката<input type="file" id="plImg" accept="image/*" hidden /></label></div>
+      <div class="fields2">
+        <label class="field">Име на плана<input id="plTier" maxlength="40" value="${esc(d.tier)}" placeholder="Семейно" /></label>
+        <label class="field">Заглавие<input id="plTitle" maxlength="80" value="${esc(d.title)}" placeholder="20 кг / месец" /></label>
+      </div>
+      <div class="fields2">
+        <label class="field">Килограми на месец<input id="plKg" inputmode="decimal" value="${esc(String(d.kg).replace('.', ','))}" /></label>
+        <label class="field">Цена на месец (€)<input id="plPrice" inputmode="decimal" value="${esc(String(d.price).replace('.', ','))}" /></label>
+      </div>
+      <label class="field">Описание<textarea id="plDesc" maxlength="400">${esc(d.description || '')}</textarea></label>
+      <label class="field">Предимства — по едно на ред<textarea id="plPerks" style="min-height:110px">${esc((d.perks || []).join('\n'))}</textarea></label>
+      <label class="field">Ред под цената (по желание)<input id="plSave" maxlength="120" value="${esc(d.save_note || '')}" placeholder="Спестявате 6 € спрямо еднократна поръчка" /></label>
+      <div class="fields2">
+        <label class="field">Значка (по желание)<input id="plBadge" maxlength="40" value="${esc(d.badge || '')}" placeholder="Най-популярен" /></label>
+        <label class="field">Подредба<input id="plSort" inputmode="numeric" value="${esc(d.sort)}" /></label>
+      </div>
+      <label class="check"><input type="checkbox" id="plHot"${d.hot ? ' checked' : ''} /> Открои плана (златна рамка)</label>
+      <label class="check"><input type="checkbox" id="plActive"${d.active ? ' checked' : ''} /> Показвай плана на сайта</label>
+      <p class="login__error" id="plError" role="alert" hidden></p>
+      <div class="actions"><button class="btn btn--primary btn--sm" data-plsave="${p ? esc(p.id) : ''}">Запази плана</button>
+        ${p ? `<button class="btn btn--danger btn--sm" data-pldel="${esc(p.id)}">Изтрий</button>` : ''}</div>`);
+  }
+  function savePlan(id) {
+    const err = $('#plError'), show = m => { err.textContent = m; err.hidden = false; };
+    err.hidden = true;
+    const row = { tier: val('plTier'), title: val('plTitle'), kg: numOr(val('plKg'), 0), price: numOr(val('plPrice'), -1), description: val('plDesc') || null,
+      perks: lines($('#plPerks').value), save_note: val('plSave') || null, badge: val('plBadge') || null, hot: checked('plHot'), active: checked('plActive'),
+      sort: Math.round(numOr(val('plSort'), 0)) };
+    if (!row.tier || !row.title) return show('Въведете име и заглавие на плана.');
+    if (row.price < 0) return show('Въведете цена.');
+    const btn = $('[data-plsave]'); btn.disabled = true;
+    guard(uploadPicked('plImg', 'plan').then(url => {
+      if (url) row.image_url = url;
+      return id ? D.update('plans', id, row) : D.adminInsert('plans', row);
+    }).then(() => D.select('plans', { order: 'sort.asc' })))
+      .then(rows => { S.plans = rows; closeDrawer(); render(); toast('Планът е запазен'); })
+      .catch(e => { btn.disabled = false; if (!(e && e.auth)) show(e && e.message || 'Планът не беше запазен.'); });
+  }
+  function saveBanner() {
+    const value = { active: checked('bnActive'), text: val('bnText'), until: val('bnUntil') || null };
+    if (value.active && !value.text) return toast('Напишете текст на промоцията');
+    guard(D.adminUpsert('site_settings', { key: 'promo_banner', value: value }, 'key')).then(() => { S.banner = value; render(); toast('Лентата е запазена'); });
+  }
+  document.addEventListener('change', e => {
+    if (e.target.id === 'pSale' || e.target.id === 'pFeat') syncProductForm();
+    if (e.target.id === 'pImg' || e.target.id === 'plImg') {
+      const f = e.target.files[0], prev = $(e.target.id === 'pImg' ? '#pImgPrev' : '#plImgPrev');
+      if (f && prev) prev.src = URL.createObjectURL(f);
+    }
+  });
+  document.addEventListener('input', e => { if (e.target.id === 'pPrice' || e.target.id === 'pPromo') syncProductForm(); });
+
   /* ====================================================================== чекмедже */
   const drawer = $('#drawer'), panel = $('#drawerPanel');
   function openDrawer(html) { panel.innerHTML = html; drawer.classList.add('open'); drawer.setAttribute('aria-hidden', 'false'); const c = $('.drawer__close', panel); if (c) c.focus(); }
@@ -577,7 +795,7 @@
   function toast(msg) { const t = $('#toast'); t.textContent = msg; t.classList.add('show'); clearTimeout(toastT); toastT = setTimeout(() => t.classList.remove('show'), 2600); }
 
   document.addEventListener('click', e => {
-    const t = e.target.closest('[data-view],[data-go],[data-range],[data-order],[data-sub],[data-close-drawer],[data-ofilter],[data-csv],[data-ics],[data-cal],[data-deliver],[data-ostatus],[data-onote],[data-odel],[data-sstatus],[data-ssave],[data-sdel],[data-msgread],[data-msgdel],[data-push],[data-install]');
+    const t = e.target.closest('[data-view],[data-go],[data-range],[data-order],[data-sub],[data-close-drawer],[data-ofilter],[data-csv],[data-ics],[data-cal],[data-deliver],[data-ostatus],[data-onote],[data-odel],[data-sstatus],[data-ssave],[data-sdel],[data-msgread],[data-msgdel],[data-push],[data-install],[data-product],[data-pnew],[data-psave],[data-pdel],[data-plan],[data-plnew],[data-plsave],[data-pldel],[data-bnsave]');
     if (!t) return;
     const ds = t.dataset;
     if (ds.view || ds.go) { S.view = ds.view || ds.go; try { history.replaceState(null, '', '#' + S.view); } catch (err) {} render(); window.scrollTo(0, 0); }
@@ -586,6 +804,15 @@
     else if (ds.range) { S.range = +ds.range; $$('#range button').forEach(b => b.classList.toggle('active', b === t)); loadAll(); }
     else if ('closeDrawer' in ds) closeDrawer();
     else if (ds.deliver) { const p = ds.deliver.split('|'); toggleDelivered(p[0], p[1]); }
+    else if ('pnew' in ds) productDrawer(null);
+    else if (ds.product) productDrawer(ds.product);
+    else if ('psave' in ds) saveProduct(ds.psave || null);
+    else if (ds.pdel) { if (confirm('Да изтрия ли този продукт завинаги? Ако искате само да го скриете, махнете отметката „Показвай продукта“.')) guard(D.remove('products', ds.pdel)).then(() => { S.products = S.products.filter(p => p.id !== ds.pdel); closeDrawer(); render(); toast('Продуктът е изтрит'); }); }
+    else if ('plnew' in ds) planDrawer(null);
+    else if (ds.plan) planDrawer(ds.plan);
+    else if ('plsave' in ds) savePlan(ds.plsave || null);
+    else if (ds.pldel) { if (confirm('Да изтрия ли този план завинаги?')) guard(D.remove('plans', ds.pldel)).then(() => { S.plans = S.plans.filter(p => p.id !== ds.pldel); closeDrawer(); render(); toast('Планът е изтрит'); }); }
+    else if ('bnsave' in ds) saveBanner();
     else if (ds.order) orderDrawer(ds.order);
     else if (ds.sub) subDrawer(ds.sub);
     else if (ds.ofilter) { S.orderFilter = ds.ofilter; render(); }
@@ -643,7 +870,7 @@
 
   /* ====================================================================== рисуване */
   function render() {
-    const views = { home: viewHome, orders: viewOrders, subs: viewSubs, calendar: viewCalendar, messages: viewMessages, stats: viewStats, carts: viewCarts };
+    const views = { home: viewHome, orders: viewOrders, subs: viewSubs, calendar: viewCalendar, messages: viewMessages, stats: viewStats, carts: viewCarts, products: viewProducts, plans: viewPlans };
     $('#viewTitle').textContent = TITLES[S.view];
     $('#range').hidden = !(S.view === 'home' || S.view === 'stats' || S.view === 'carts');
     $$('#nav button').forEach(b => b.classList.toggle('active', b.dataset.view === S.view));

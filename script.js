@@ -195,10 +195,10 @@ if (juiceQty) {
 
 /* --- Category Filters --- */
 const filterBtns = document.querySelectorAll('.filter-btn');
-const shopCards = document.querySelectorAll('.varieties__grid .variety');
+const shopCardsNow = () => document.querySelectorAll('.varieties__grid .variety');
 
-if (filterBtns.length && shopCards.length) {
-  shopCards.forEach((card, i) => { card.style.viewTransitionName = 'shop-card-' + i; });
+if (filterBtns.length && shopCardsNow().length) {
+  shopCardsNow().forEach((card, i) => { card.style.viewTransitionName = 'shop-card-' + i; });
 
   filterBtns.forEach(btn => {
     btn.addEventListener('click', () => {
@@ -208,7 +208,7 @@ if (filterBtns.length && shopCards.length) {
       const apply = () => {
         filterBtns.forEach(b => b.classList.remove('active'));
         btn.classList.add('active');
-        shopCards.forEach(card => {
+        shopCardsNow().forEach(card => {
           const category = card.dataset.category;
           const show = filterValue === 'all' || category === filterValue;
           card.classList.toggle('hidden', !show);
@@ -257,6 +257,144 @@ document.querySelectorAll('.variety__order').forEach(function(block){
   });
 });
 
+/* ===================== КАТАЛОГ ОТ БАЗАТА =====================
+   Продуктите, абонаментните планове и промоциите се управляват от админ панела.
+   Страницата тръгва с вградените в HTML продукти; щом базата отговори, те се заменят с актуалните.
+   Ако базата не отговори, остава вграденото съдържание и магазинът продължава да работи. */
+const fmtNum = n => (Math.round((+n || 0) * 100) / 100).toString().replace('.', ',');
+(function () {
+  const D = window.UMData;
+  if (!D || !D.publicSelect || D.mode === 'off') return;
+  const grid = document.querySelector('.varieties__grid');
+  const subGrid = document.querySelector('.sub__grid');
+  if (!grid && !subGrid) return;
+  const esc = s => String(s == null ? '' : s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+  const today = new Date().toISOString().slice(0, 10);
+  const ICONS = ['drop', 'shield', 'box', 'leaf', 'apple', 'sprout', 'clock', 'home'];
+  const color = c => /^#[0-9a-f]{6}$/i.test(c || '') ? c : '#c1272d';
+  const promoOf = p => (+p.promo_percent > 0 && (!p.promo_until || p.promo_until >= today)) ? +p.promo_percent : 0;
+  const priceOf = p => Math.round(p.price * (100 - promoOf(p))) / 100;
+  const weightsOf = p => { const w = (Array.isArray(p.weights) ? p.weights : []).map(Number).filter(x => x > 0); return w.length ? w : [1]; };
+  const byId = new Map();
+
+  function controls(p) {
+    if (p.sale_type === 'kg') return `<div class="variety__weights">${weightsOf(p).map((kg, i) => `<button class="vw${i ? '' : ' active'}" data-kg="${kg}">${fmtNum(kg)} кг</button>`).join('')}</div>`;
+    return `<div class="qty-select" data-qty><button data-act="dec" aria-label="По-малко">−</button><span><span class="qv">1</span> ${esc(p.unit_label || 'бр.')}</span><button data-act="inc" aria-label="Повече">+</button></div>`;
+  }
+  function priceHtml(p) {
+    const first = p.sale_type === 'kg' ? weightsOf(p)[0] : 1, promo = promoOf(p);
+    return `<span class="variety__price">${promo ? `<s class="variety__old">${fmtNum(first * p.price)} €</s>` : ''}<span class="vp">${fmtNum(first * priceOf(p))}</span> €</span>`;
+  }
+  const promoBadge = p => promoOf(p) ? `<span class="variety__promo">${esc(p.promo_label || '−' + fmtNum(promoOf(p)) + '%')}</span>` : '';
+
+  function card(p) {
+    if (p.featured) {
+      const bullets = Array.isArray(p.bullets) ? p.bullets : [];
+      return `<article class="variety variety--featured reveal" style="--c:${color(p.color)}" data-category="${esc(p.category)}" data-pid="${esc(p.id)}">
+        <div class="variety__top variety__top--juice">
+          <span class="juice__blob" aria-hidden="true"></span>
+          <figure class="juice__photo"><img src="${esc(p.image_url || 'img/apples.jpg')}" alt="${esc(p.name)}" loading="lazy" /></figure>
+          ${p.note ? `<span class="juice__note" aria-hidden="true">${esc(p.note)}</span>` : ''}
+          ${promoBadge(p)}
+        </div>
+        <div class="variety__content">
+          <div class="variety__header-group">${p.badge ? `<span class="variety__badge">${esc(p.badge)}</span>` : ''}<h3>${esc(p.name)}</h3></div>
+          <p class="variety__lead">${esc(p.lead || p.description || '')}</p>
+          <div class="variety__bullets">${bullets.map((b, i) => `<div class="bullet-item"><span class="bullet-icon"><svg class="ico"><use href="#i-${ICONS.includes(b.icon) ? b.icon : ICONS[i % 3]}"/></svg></span><div class="bullet-text"><strong>${esc(b.title)}</strong><p>${esc(b.text)}</p></div></div>`).join('')}</div>
+          <div class="variety__footer-featured">
+            ${p.tag ? `<span class="variety__tag variety__tag--green">${esc(p.tag)}</span>` : ''}
+            <div class="variety__order">${controls(p)}<div class="variety__buy">${priceHtml(p)}<button class="btn btn--primary vadd">Поръчай</button></div></div>
+          </div>
+        </div>
+      </article>`;
+    }
+    return `<article class="variety reveal" style="--c:${color(p.color)}" data-category="${esc(p.category)}" data-pid="${esc(p.id)}" data-tilt>
+      <div class="variety__top"><img src="${esc(p.image_url || 'img/apples.jpg')}" alt="${esc(p.name)}" loading="lazy" /></div>
+      ${promoBadge(p)}
+      <h3>${esc(p.name)}</h3>
+      <p>${esc(p.description || '')}</p>
+      ${p.tag ? `<span class="variety__tag">${esc(p.tag)}</span>` : ''}
+      <div class="variety__order">${controls(p)}<div class="variety__buy">${priceHtml(p)}<button class="btn btn--primary btn--sm vadd">Поръчай</button></div></div>
+    </article>`;
+  }
+  function planCard(pl) {
+    const perks = Array.isArray(pl.perks) ? pl.perks : [];
+    return `<article class="sub__card${pl.hot ? ' sub__card--hot' : ''} reveal" data-spot>
+      ${pl.badge ? `<div class="sub__badge">${esc(pl.badge)}</div>` : ''}
+      <div class="sub__card-top"><span class="sub__tier${pl.hot ? ' sub__tier--hot' : ''}">${esc(pl.tier)}</span><div class="sub__icon"><img src="${esc(pl.image_url || 'img/apples.jpg')}" alt="" loading="lazy"></div></div>
+      <h3>${esc(pl.title)}</h3>
+      <p>${esc(pl.description || '')}</p>
+      <ul class="sub__perks">${perks.map(x => `<li>${esc(x)}</li>`).join('')}</ul>
+      <div class="sub__price"><strong>${fmtNum(pl.price)} €</strong><span>/ месец</span></div>
+      ${pl.save_note ? `<p class="sub__save">${esc(pl.save_note)}</p>` : ''}
+      <button class="btn sub__btn" data-plan="${esc(pl.tier + ' — ' + pl.title)}" data-price="${esc(pl.price)}" data-kg="${esc(pl.kg)}">Абонирай се <svg class="ico"><use href="#i-arrow"/></svg></button>
+    </article>`;
+  }
+  function refresh(scope) {
+    scope.querySelectorAll('.reveal').forEach((el, i) => el.style.setProperty('--ri', i % 4));
+    observeReveal(scope);
+    if (window.umBindTilt) window.umBindTilt(scope);
+  }
+
+  /* --- избор на грамаж / брой и добавяне в кошницата (за продуктите от базата) --- */
+  if (grid) grid.addEventListener('click', e => {
+    const cardEl = e.target.closest('.variety[data-pid]');
+    if (!cardEl) return;
+    const p = byId.get(cardEl.dataset.pid); if (!p) return;
+    const unit = priceOf(p), promo = promoOf(p);
+    const setPrice = mult => {
+      cardEl.querySelector('.vp').textContent = fmtNum(mult * unit);
+      const old = cardEl.querySelector('.variety__old'); if (old) old.textContent = fmtNum(mult * p.price) + ' €';
+    };
+    const w = e.target.closest('.vw');
+    if (w) {
+      cardEl.querySelectorAll('.vw').forEach(b => b.classList.toggle('active', b === w));
+      return setPrice(+w.dataset.kg);
+    }
+    const q = e.target.closest('[data-qty] button');
+    if (q) {
+      const qv = cardEl.querySelector('.qv');
+      const n = Math.max(1, (+qv.textContent || 1) + (q.dataset.act === 'inc' ? 1 : -1));
+      qv.textContent = n;
+      return setPrice(n);
+    }
+    if (!e.target.closest('.vadd')) return;
+    if (p.sale_type === 'kg') {
+      const act = cardEl.querySelector('.vw.active'), kg = act ? +act.dataset.kg : weightsOf(p)[0];
+      addToCart({ id: 'p-' + p.id + '-' + kg, type: 'apples', name: p.category === 'variety' ? 'Ябълки ' + p.name : p.name,
+        meta: fmtNum(kg) + ' кг · ' + fmtNum(unit) + ' €/кг' + (promo ? ' (−' + fmtNum(promo) + '%)' : ''), icon: '🍎', img: p.image_url || '',
+        unitPrice: Math.round(kg * unit * 100) / 100, qty: 1, kg: kg });
+    } else {
+      const n = Math.max(1, +cardEl.querySelector('.qv').textContent || 1);
+      addToCart({ id: 'p-' + p.id, type: 'unit', name: p.name, meta: fmtNum(unit) + ' € / ' + (p.unit_label || 'бр.') + (promo ? ' (−' + fmtNum(promo) + '%)' : ''),
+        icon: '🧃', img: p.image_url || '', unitPrice: unit, qty: n, kg: +p.unit_kg || 1 });
+    }
+    openCart();
+  });
+
+  Promise.all([
+    grid ? D.publicSelect('products', { filters: [['active', 'eq', 'true']], order: 'sort.asc' }) : Promise.resolve(null),
+    subGrid ? D.publicSelect('plans', { filters: [['active', 'eq', 'true']], order: 'sort.asc' }) : Promise.resolve(null),
+    grid ? D.publicSelect('site_settings', { filters: [['key', 'eq', 'promo_banner']], order: 'key.asc' }).catch(() => []) : Promise.resolve([])
+  ]).then(r => {
+    const products = r[0], plans = r[1], banner = r[2] && r[2][0] && r[2][0].value;
+    if (grid && products && products.length) {
+      byId.clear(); products.forEach(p => byId.set(String(p.id), p));
+      grid.innerHTML = products.map(card).join('');
+      grid.querySelectorAll('.variety').forEach((c, i) => { c.style.viewTransitionName = 'shop-card-' + i; });
+      refresh(grid);
+    }
+    if (subGrid && plans && plans.length) { subGrid.innerHTML = plans.map(planCard).join(''); refresh(subGrid); }
+    const filters = document.querySelector('.shop__filters');
+    if (filters && banner && banner.active && banner.text && (!banner.until || banner.until >= today)) {
+      const b = document.createElement('p');
+      b.className = 'shop__promo';
+      b.textContent = banner.text;
+      filters.parentNode.insertBefore(b, filters);
+    }
+  }).catch(() => {});   /* базата не отговаря → остава вграденото съдържание */
+})();
+
 /* ===================== CART ===================== */
 const CART_KEY = 'umarevska_cart';
 let cart = loadCart();
@@ -278,7 +416,7 @@ function saveCart() { localStorage.setItem(CART_KEY, JSON.stringify(cart)); }
 function cartSnapshot() {
   return {
     cart: cart.map(i => ({ n: i.name + (i.meta ? ' · ' + i.meta.split(' · ')[0] : ''), q: i.qty, p: i.unitPrice })),
-    total: cart.reduce((s, i) => s + i.qty * i.unitPrice, 0)
+    total: Math.round(cart.reduce((s, i) => s + i.qty * i.unitPrice, 0) * 100) / 100
   };
 }
 function trackCart(action, item) {
@@ -315,7 +453,7 @@ function renderCart() {
 
   cartCountEl.textContent = count;
   cartCountEl.classList.toggle('show', count > 0);
-  cartTotalEl.textContent = total;
+  cartTotalEl.textContent = fmtNum(total);
   checkoutBtn.disabled = cart.length === 0;
 
   cartEmptyEl.style.display = cart.length ? 'none' : 'flex';
@@ -333,7 +471,7 @@ function renderCart() {
             <span>${i.qty}</span>
             <button onclick="changeQty('${i.id}',1)" aria-label="Повече">+</button>
           </div>
-          <span class="cart-item__price">${i.qty * i.unitPrice} €</span>
+          <span class="cart-item__price">${fmtNum(i.qty * i.unitPrice)} €</span>
         </div>
         <button class="cart-item__del" onclick="removeFromCart('${i.id}')">Премахни</button>
       </div>
@@ -396,6 +534,7 @@ function econtQuote(weight, receiver) {
 /* тегло на пратката: килограмите ябълки + ~3,3 кг за всяка кутия сок */
 function cartWeight() {
   const kg = cart.reduce((s, i) => {
+    if (typeof i.kg === 'number' && i.kg > 0) return s + i.kg * i.qty;
     if (i.type === 'juice') return s + 3.3 * i.qty;
     const m = /(\d+(?:[.,]\d+)?)\s*кг/.exec(i.meta || '');
     return s + (m ? parseFloat(m[1].replace(',', '.')) : 1) * i.qty;
@@ -415,8 +554,8 @@ function renderOrderForm() {
       <h3>Завършване на поръчката</h3>
       <p>Оставете данни за връзка — ще ви се обадим за потвърждение.</p>
       <ul class="order-form__items">
-        ${cart.map(i => `<li><span>${escHtml(i.name)} <small>${escHtml(i.meta.split(' · ')[0])} × ${i.qty}</small></span><b>${i.qty * i.unitPrice} €</b></li>`).join('')}
-        <li class="order-form__sum"><span>Стоки</span><b>${snap.total} €</b></li>
+        ${cart.map(i => `<li><span>${escHtml(i.name)} <small>${escHtml(i.meta.split(' · ')[0])} × ${i.qty}</small></span><b>${fmtNum(i.qty * i.unitPrice)} €</b></li>`).join('')}
+        <li class="order-form__sum"><span>Стоки</span><b>${fmtNum(snap.total)} €</b></li>
       </ul>
       <div class="sub-modal__row">
         <input type="text" name="name" placeholder="Име и фамилия" aria-label="Име и фамилия" autocomplete="name" minlength="2" maxlength="120" required />
@@ -461,7 +600,7 @@ function renderOrderForm() {
       <input type="text" name="website" class="order-form__hp" tabindex="-1" autocomplete="off" aria-hidden="true" />
       <p class="order-form__error" role="alert" hidden></p>
       <div class="sub-modal__pay-row">
-        <div class="sub-modal__total"><span data-total-label>Общо</span>: <strong data-total>${snap.total} €</strong></div>
+        <div class="sub-modal__total"><span data-total-label>Общо</span>: <strong data-total>${fmtNum(snap.total)} €</strong></div>
         <button type="submit" class="btn btn--primary sub-modal__pay-btn">Изпрати поръчката <svg class="ico"><use href="#i-arrow"/></svg></button>
       </div>
     </form>`;
@@ -751,10 +890,9 @@ renderCart();
     document.body.style.overflow = '';
   }
 
-  document.querySelectorAll('.sub__btn').forEach(function(btn) {
-    btn.addEventListener('click', function() {
-      openModal(btn.dataset.plan, btn.dataset.price, btn.dataset.kg);
-    });
+  document.addEventListener('click', function(e) {
+    var btn = e.target.closest ? e.target.closest('.sub__btn') : null;
+    if (btn) openModal(btn.dataset.plan, btn.dataset.price, btn.dataset.kg);
   });
 
   if (closeBtn) closeBtn.addEventListener('click', closeModal);
@@ -1133,7 +1271,8 @@ renderCart();
 
   /* --- 3D наклон и „прожектор“ под курсора --- */
   if (window.matchMedia('(hover:hover) and (pointer:fine)').matches) {
-    document.querySelectorAll('[data-tilt],[data-spot]').forEach(function(el){
+    var bindTilt = function(el){
+      if (el._tilt) return; el._tilt = true;
       var tilt = el.hasAttribute('data-tilt');
       el.addEventListener('pointermove', function(ev){
         var r = el.getBoundingClientRect();
@@ -1148,6 +1287,8 @@ renderCart();
       el.addEventListener('pointerleave', function(){
         if (tilt) { el.style.setProperty('--rx', '0deg'); el.style.setProperty('--ry', '0deg'); }
       });
-    });
+    };
+    document.querySelectorAll('[data-tilt],[data-spot]').forEach(bindTilt);
+    window.umBindTilt = function(scope){ scope.querySelectorAll('[data-tilt],[data-spot]').forEach(bindTilt); };
   }
 })();

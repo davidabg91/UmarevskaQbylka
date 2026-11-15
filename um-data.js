@@ -201,6 +201,39 @@
     },
     vapidPublicKey: String(C.vapidPublicKey || ''),
 
+    /* публично четене (продукти, планове, настройки) — с публичния ключ */
+    publicSelect: function (table, q) {
+      q = q || {};
+      if (mode === 'off') return Promise.reject(new Error('not-configured'));
+      if (mode === 'demo') return API.select(table, q);
+      var url = BASE + '/rest/v1/' + table + '?select=' + encodeURIComponent(q.columns || '*');
+      (q.filters || []).forEach(function (f) { url += '&' + encodeURIComponent(f[0]) + '=' + f[1] + '.' + encodeURIComponent(f[2]); });
+      url += '&order=' + (q.order || 'created_at.desc');
+      return fetch(url, { headers: headers() }).then(function (r) { return r.ok ? r.json() : fail(r); });
+    },
+    /* админ: запис „добави или замени“ по ключ (напр. настройки) */
+    adminUpsert: function (table, row, conflict) {
+      if (mode === 'demo') {
+        var rows = demoRead(table).filter(function (r) { return r[conflict] !== row[conflict]; });
+        rows.push(row); demoWrite(table, rows); return Promise.resolve(true);
+      }
+      return authed(function (s) {
+        return fetch(BASE + '/rest/v1/' + table + '?on_conflict=' + encodeURIComponent(conflict), {
+          method: 'POST', headers: headers(s.access_token, { Prefer: 'resolution=merge-duplicates,return=minimal' }), body: JSON.stringify(row)
+        }).then(function (r) { return r.ok ? true : fail(r); });
+      });
+    },
+    /* админ: качва снимка и връща публичния ѝ адрес */
+    upload: function (bucket, path, blob) {
+      if (mode === 'demo') return new Promise(function (res) { var fr = new FileReader(); fr.onload = function () { res(fr.result); }; fr.readAsDataURL(blob); });
+      return authed(function (s) {
+        return fetch(BASE + '/storage/v1/object/' + bucket + '/' + path, {
+          method: 'POST', body: blob,
+          headers: { 'apikey': KEY, 'Authorization': 'Bearer ' + s.access_token, 'Content-Type': blob.type || 'image/jpeg', 'cache-control': '31536000' }
+        }).then(function (r) { return r.ok ? BASE + '/storage/v1/object/public/' + bucket + '/' + path : fail(r); });
+      });
+    },
+
     /* само за демо режима */
     demoReplace: function (table, rows) { if (mode === 'demo') demoWrite(table, rows); },
     uid: uid

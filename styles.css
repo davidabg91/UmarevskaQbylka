@@ -426,6 +426,13 @@ html.lb-open{overflow:hidden}
 .variety__buy{display:flex;align-items:center;justify-content:space-between;gap:.6rem}
 .variety__price{font-family:var(--font-d);font-weight:700;font-size:1.75rem;line-height:1;color:var(--ct);font-variant-numeric:tabular-nums}
 
+.variety__promo{position:absolute;top:1.45rem;right:1.45rem;z-index:2;font-size:.8rem;font-weight:800;letter-spacing:.02em;color:#fff;background:var(--red);
+  padding:.42rem .85rem;border-radius:999px;box-shadow:0 10px 20px -10px var(--red)}
+.variety__old{font-family:var(--font-b);font-size:.9rem;font-weight:600;color:var(--muted);margin-right:.5rem}
+.variety:not(.variety--featured) .qty-select{width:100%;margin-bottom:.95rem}
+.shop__promo{position:relative;z-index:1;width:max-content;max-width:100%;margin:0 auto 1.2rem;padding:.7rem 1.3rem;border-radius:999px;text-align:center;font-weight:800;font-size:.95rem;
+  color:#5d4300;background:linear-gradient(135deg,#fff3c9,#f6d77a);box-shadow:0 14px 30px -18px rgba(233,185,73,.9)}
+
 /* --- Featured (сок) --- */
 .variety--featured{grid-column:1/-1;border-color:var(--gold);background:linear-gradient(135deg,#fffdf8,#fff5dc);padding:.75rem .75rem 1.6rem}
 .variety--featured:hover{transform:none}
