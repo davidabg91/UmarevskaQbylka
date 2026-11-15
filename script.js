@@ -67,10 +67,10 @@ const clamp01 = v => Math.min(1, Math.max(0, v));
       document.body.classList.remove('loading');
       setTimeout(() => {
         preloader.style.display = 'none';
-      }, 1200);
+      }, FX ? 2150 : 500);
     }
-    /* входната анимация на hero тръгва, докато завесата се вдига */
-    setTimeout(() => root.classList.add('ready'), 380);
+    /* входната анимация на hero тръгва, когато ябълката започне да „полита“ към зрителя */
+    setTimeout(() => root.classList.add('ready'), FX ? 1050 : 100);
   }
 
   if (heroVideo) {
