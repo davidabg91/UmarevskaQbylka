@@ -187,6 +187,9 @@ details.tableview table{margin-top:.6rem}
 .msg__head{display:flex;align-items:center;justify-content:space-between;gap:.8rem;flex-wrap:wrap;margin-bottom:.5rem}
 .msg__text{white-space:pre-wrap;overflow-wrap:anywhere}
 .msg__foot{display:flex;gap:.5rem;flex-wrap:wrap;margin-top:.9rem}
+.msg__foot .btn{min-width:0;max-width:100%}
+.msg__foot a.btn{display:inline-block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;line-height:1.3}
+.msg__head b{overflow-wrap:anywhere}
 
 /* ---------- продукти и планове ---------- */
 .pgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(240px,1fr));gap:.8rem}
@@ -248,14 +251,23 @@ details.tableview table{margin-top:.6rem}
   .side{position:sticky;top:0;z-index:20;height:auto;flex-direction:row;align-items:center;gap:.6rem;padding:.5rem .6rem}
   .side__brand{padding:0;flex:0 0 auto}
   .side__brand img{width:58px}
-  .side__nav{flex-direction:row;overflow-x:auto;overflow-y:hidden;gap:.2rem;scrollbar-width:none}
-  .side__nav::-webkit-scrollbar{display:none}
-  .side__nav button{width:auto;white-space:nowrap;padding:.55rem .75rem;font-size:.85rem}
+  .side{flex-wrap:wrap}
+  .side__foot{margin-left:auto}
+  /* менюто е на отделен ред; избледняващият десен край и тънката лента показват, че се плъзга */
+  .side__nav{order:3;flex:0 0 100%;flex-direction:row;overflow-x:auto;overflow-y:hidden;gap:.3rem;padding:.1rem 1.6rem .45rem 0;scroll-snap-type:x proximity;-webkit-overflow-scrolling:touch;scrollbar-width:thin;scrollbar-color:rgba(255,255,255,.45) transparent;-webkit-mask-image:linear-gradient(90deg,#000 calc(100% - 44px),transparent);mask-image:linear-gradient(90deg,#000 calc(100% - 44px),transparent)}
+  .side__nav::-webkit-scrollbar{height:3px}
+  .side__nav::-webkit-scrollbar-thumb{background:rgba(255,255,255,.45);border-radius:3px}
+  .side__nav button{width:auto;flex:0 0 auto;white-space:nowrap;padding:.55rem .8rem;font-size:.85rem;scroll-snap-align:start;background:rgba(255,255,255,.08)}
   .side__foot{flex-direction:row;align-items:center;gap:.7rem;border:0;padding:0;flex:0 0 auto}
   .side__user,.side__foot #seedBtn{display:none}
   .side__foot{gap:.5rem}
   .side__foot .linkbtn{font-size:.74rem;white-space:nowrap}
   .card__head{flex-wrap:wrap}
+  .msg{padding:1rem}
+  .msg__foot{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr)}
+  .msg__foot a.btn{grid-column:1/-1;text-align:center}
+  .msg__foot .btn{width:100%}
+  .msg__foot button:only-of-type{grid-column:1/-1}
   .cal{gap:2px}
   .grid2{grid-template-columns:1fr}
   .main{padding:1.1rem .8rem 3rem}

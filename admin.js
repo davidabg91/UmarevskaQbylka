@@ -441,7 +441,7 @@
       <p class="msg__text">${esc(m.message)}</p>
       <div class="msg__foot">${m.phone ? `<a class="btn btn--ghost btn--sm" href="tel:${esc(digits(m.phone))}">Обади се: ${esc(m.phone)}</a>` : ''}
         ${m.email ? `<a class="btn btn--ghost btn--sm" href="mailto:${esc(m.email)}">Пиши: ${esc(m.email)}</a>` : ''}
-        ${m.status === 'new' ? `<button class="btn btn--green btn--sm" data-msgread="${esc(m.id)}">Отбележи като прочетено</button>` : ''}
+        ${m.status === 'new' ? `<button class="btn btn--green btn--sm" data-msgread="${esc(m.id)}" title="Отбележи като прочетено">Прочетено ✓</button>` : ''}
         <button class="btn btn--danger btn--sm" data-msgdel="${esc(m.id)}">Изтрий</button></div></article>`).join('') + '</div>';
   }
 
@@ -874,6 +874,8 @@
     $('#viewTitle').textContent = TITLES[S.view];
     $('#range').hidden = !(S.view === 'home' || S.view === 'stats' || S.view === 'carts');
     $$('#nav button').forEach(b => b.classList.toggle('active', b.dataset.view === S.view));
+    const navEl = document.getElementById('nav'), act = navEl && navEl.querySelector('button.active');      /* на телефон: избраният таб да се вижда в лентата */
+    if (act && navEl.scrollWidth > navEl.clientWidth) navEl.scrollTo({ left: Math.max(0, act.offsetLeft - navEl.offsetLeft - 44), behavior: 'smooth' });
     const badges = { orders: S.orders.filter(o => o.status === 'new').length, subs: S.subs.filter(s => s.status === 'new').length,
                      messages: S.msgs.filter(m => m.status === 'new').length, calendar: reminders().filter(x => x.late || x.today).length };
     $$('[data-badge]').forEach(i => { const n = badges[i.dataset.badge] || 0; i.textContent = n; i.classList.toggle('on', n > 0); });
