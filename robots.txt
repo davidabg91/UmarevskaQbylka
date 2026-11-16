@@ -1,0 +1,8 @@
+# Умаревска Ябълка — https://umarevska-yabalka.com/
+# Целият сайт е отворен за търсачки и за AI асистенти.
+# Админ панелът не се забранява тук: той носи meta robots "noindex" и така не влиза в резултатите.
+
+User-agent: *
+Allow: /
+
+Sitemap: https://umarevska-yabalka.com/sitemap.xml

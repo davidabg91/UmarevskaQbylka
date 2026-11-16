@@ -1,6 +1,8 @@
 /* ===== Споделени блог статии (ползва се от index.html и article.html) ===== */
 window.ARTICLES = [
   {
+    slug: 'koy-sort-yabalka-da-izberete',
+    date: '2026-06-01',
     cat: 'Сортове',
     img: 'img/b-varieties.webp',
     icon: '🍎',
@@ -73,6 +75,8 @@ window.ARTICLES = [
     ctaText: 'Поръчайте микс от петте ни сорта или изберете отделен сорт по килограм — брани в зрялост, директно от фермата.'
   },
   {
+    slug: '7-prichini-da-yadete-yabalki-vseki-den',
+    date: '2026-06-01',
     cat: 'Здраве',
     img: 'img/b-health.webp',
     icon: '💚',
@@ -97,6 +101,8 @@ window.ARTICLES = [
     ctaText: 'Поръчайте свежи ябълки на 5, 10 или 20 кг и си осигурете здравословна хапка всеки ден. А за в движение — вземете и натурален сок.'
   },
   {
+    slug: 'naturalen-yabalkov-sok',
+    date: '2026-06-01',
     cat: 'Продукти',
     img: 'img/b-juice.webp',
     icon: '🧃',
@@ -120,6 +126,9 @@ window.ARTICLES = [
     ctaText: 'Без захар, без концентрати, без консерванти — само зрели ябълки. Поръчайте сок от магазина и усетете истинския вкус.'
   },
   {
+    slug: 'yabalkov-pay-greni-smit',
+    imgSize: [960, 658],
+    date: '2026-06-01',
     cat: 'Кулинария',
     img: 'img/b-pie.jpg',
     icon: '🥧',
@@ -145,6 +154,8 @@ window.ARTICLES = [
     ctaText: 'Поръчайте сорт Грени Смит по килограм за вашия пай — стегнат, свеж и идеален за печене. А за сервиране — добавете и натурален сок.'
   },
   {
+    slug: 'kak-da-sahranyavame-yabalkite',
+    date: '2026-06-01',
     cat: 'Съхранение',
     img: 'img/b-storage.webp',
     icon: '📦',
@@ -166,6 +177,8 @@ window.ARTICLES = [
     ctaText: 'Поръчайте 20 кг трайни ябълки (напр. Флорина) и им се радвайте със седмици. Доставяме директно от фермата.'
   },
   {
+    slug: 'sezonat-v-umarevtsi',
+    date: '2026-06-01',
     cat: 'Ферма',
     img: 'img/b-season.webp',
     icon: '🌳',
