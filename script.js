@@ -131,7 +131,7 @@ if (yearEl) yearEl.textContent = new Date().getFullYear();
 
 /* ===================== SHOP ===================== */
 const APPLE_PRICE_PER_KG = 2; // €
-const JUICE_PRICE = 10;       // €
+const JUICE_PRICE = 5;        // €
 
 /* --- Apples --- */
 let appleKg = 5;

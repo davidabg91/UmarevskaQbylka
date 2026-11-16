@@ -107,7 +107,7 @@ articles.forEach((a, i) => {
     <aside class="article__cta">
       <span class="article__cta-emoji"><svg class="ico"><use href="#i-apple"/></svg></span>
       <div class="article__cta-text">
-        <h3>${esc(a.ctaTitle || 'Поръчайте директно от фермата')}</h3>
+        <h3>${esc(a.ctaTitle || 'Поръчайте директно от градината')}</h3>
         <p>${esc(a.ctaText || 'Свежи ябълки и 100% натурален сок от Умаревска Ябълка — поръчайте лесно онлайн.')}</p>
       </div>
       <a href="./#shop" class="btn btn--primary">Към магазина <svg class="ico"><use href="#i-arrow"/></svg></a>
