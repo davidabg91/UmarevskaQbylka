@@ -28,9 +28,9 @@
     bar = document.createElement('div');
     bar.className = 'consent';
     bar.setAttribute('role', 'dialog');
-    bar.setAttribute('aria-label', 'Съгласие за статистика');
-    bar.innerHTML = '<p><strong>Статистика на сайта</strong>Може ли да записваме анонимна статистика за посещенията? За нея в браузъра ви се пази случаен номер — без име, телефон или реклами. <a href="poveritelnost.html">Поверителност</a></p>'
-      + '<div class="consent__btns"><button type="button" class="btn btn--sm consent__no">Отказвам</button><button type="button" class="btn btn--sm consent__yes">Приемам</button></div>';
+    bar.setAttribute('aria-label', 'Бисквитки');
+    bar.innerHTML = '<p><strong>Бисквитки</strong>Използваме бисквитки и подобни технологии, за да работи сайтът правилно и да го подобряваме с анонимна статистика. Не ги използваме за реклама. <a href="poveritelnost.html#biskvitki">Научете повече</a></p>'
+      + '<div class="consent__btns"><button type="button" class="btn btn--sm consent__no">Само необходимите</button><button type="button" class="btn btn--sm consent__yes">Приемам всички</button></div>';
     bar.querySelector('.consent__yes').addEventListener('click', function () { decide(true); });
     bar.querySelector('.consent__no').addEventListener('click', function () { decide(false); });
     document.body.appendChild(bar);
