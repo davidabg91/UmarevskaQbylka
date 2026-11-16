@@ -485,6 +485,8 @@ html.lb-open{overflow:hidden}
   .varieties__grid:has(.variety[data-category="variety"].hidden){grid-template-columns:minmax(0,1fr) minmax(0,2.1fr)}
   .varieties__grid:has(.variety[data-category="variety"].hidden) .variety--featured{grid-column:auto;grid-template-columns:minmax(0,.8fr) minmax(0,1.2fr);gap:1.6rem}
   .varieties__grid:has(.variety[data-category="variety"].hidden) .variety:not(.variety--featured) .variety__top{flex:1;height:auto;min-height:225px}
+  /* само първият голям продукт стои до микса; следващите (напр. оцетът) заемат цял ред */
+  .varieties__grid:has(.variety[data-category="variety"].hidden) .variety--featured~.variety--featured{grid-column:1/-1;grid-template-columns:minmax(0,.92fr) minmax(0,1.18fr);gap:clamp(1.6rem,3.5vw,3rem)}
 }
 
 /* ===== ORNAMENT DIVIDER ===== */
