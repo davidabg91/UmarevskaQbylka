@@ -904,12 +904,10 @@
         </div>
         <input type="email" name="email" placeholder="Имейл адрес" aria-label="Имейл адрес" autocomplete="email" required />
         <textarea name="address" placeholder="Адрес за доставка (град, улица, №)" aria-label="Адрес за доставка" rows="2" required></textarea>
-        <select name="start" aria-label="Начало на доставки">
-          <option value="">Начало на доставки</option>
-          <option>Следващия месец</option>
-          <option>След 2 месеца</option>
-          <option>По договаряне</option>
+        <select name="variety" id="subVariety" aria-label="Сорт ябълки" required>
+          <option value="">Кой сорт ябълки желаете?</option>
         </select>
+        <textarea name="note" placeholder="Бележка (по желание)" aria-label="Бележка" rows="2" maxlength="1000"></textarea>
         <div class="sub-modal__pay-row">
           <div class="sub-modal__total">
             Общо: <strong><span id="subModalTotalPrice">—</span> € / месец</strong>
@@ -976,6 +974,6 @@
   <script src="um-data.js?v=5"></script>
   <script src="um-track.js?v=1"></script>
   <script src="articles.js?v=14"></script>
-  <script src="script.js?v=34"></script>
+  <script src="script.js?v=35"></script>
 </body>
 </html>

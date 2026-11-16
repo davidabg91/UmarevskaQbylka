@@ -179,6 +179,10 @@ create extension if not exists pg_net;
 
 alter table public.orders        add column if not exists notified_at timestamptz;
 alter table public.subscriptions add column if not exists notified_at timestamptz;
+-- избран сорт и бележка от клиента към абонамента
+alter table public.subscriptions
+  add column if not exists variety text check (char_length(variety) <= 120),
+  add column if not exists note text check (char_length(note) <= 1000);
 alter table public.messages      add column if not exists notified_at timestamptz;
 
 -- посетител не може сам да отбележи реда си като „вече известен“
@@ -379,3 +383,41 @@ $job$);
 --     insert into public.admins (email) values ('имейл-на-собственика');
 --  Същият имейл трябва да има потребител в Authentication → Users.
 -- ============================================================================
+
+-- ============================================================================
+--  Имейл за потвърждение на поръчката до клиента
+--  При нова поръчка с имейл базата вика supabase/functions/order-email (изпраща през Resend).
+-- ============================================================================
+alter table public.orders add column if not exists emailed_at timestamptz;
+
+drop policy if exists "public insert orders" on public.orders;
+create policy "public insert orders" on public.orders
+  for insert to anon, authenticated
+  with check (status = 'new' and admin_note is null and notified_at is null and emailed_at is null);
+
+-- ВНИМАНИЕ: адресът по-долу е на конкретния проект; при друг проект го сменете.
+create or replace function public.um_order_email()
+returns trigger
+language plpgsql
+security definer
+set search_path = public
+as $$
+begin
+  if new.email is null then return new; end if;
+  begin
+    perform net.http_post(
+      url := 'https://cjxmwgnxxxteoodtqjsp.supabase.co/functions/v1/order-email',
+      body := '{}'::jsonb,
+      headers := '{"Content-Type":"application/json"}'::jsonb,
+      timeout_milliseconds := 10000
+    );
+  exception when others then
+    null;  -- поръчка никога не бива да се провали заради имейл
+  end;
+  return new;
+end;
+$$;
+revoke all on function public.um_order_email() from public, anon, authenticated;
+
+drop trigger if exists um_email_orders on public.orders;
+create trigger um_email_orders after insert on public.orders for each row execute function public.um_order_email();

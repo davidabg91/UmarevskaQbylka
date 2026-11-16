@@ -742,7 +742,7 @@
     openDrawer(`<div class="drawer__head"><div><h2>${esc(s.customer_name)}</h2><span class="note">заявка от ${esc(fmtDT(s.created_at))}</span></div><button class="drawer__close" data-close-drawer aria-label="Затвори">✕</button></div>
       <div>${badge(SUB_ST, s.status)}</div>
       <dl class="kv"><dt>План</dt><dd>${esc(s.plan)}</dd><dt>Цена</dt><dd>${money(s.price)} на месец</dd><dt>Телефон</dt><dd>${esc(s.phone)}</dd>${s.email ? `<dt>Имейл</dt><dd>${esc(s.email)}</dd>` : ''}
-        <dt>Адрес</dt><dd>${esc(s.address || '—')}</dd>${s.start_pref ? `<dt>Желано начало</dt><dd>${esc(s.start_pref)}</dd>` : ''}
+        ${s.variety ? `<dt>Сорт</dt><dd>${esc(s.variety)}</dd>` : ''}<dt>Адрес</dt><dd>${esc(s.address || '—')}</dd>${s.note ? `<dt>Бележка от клиента</dt><dd>${esc(s.note)}</dd>` : ''}${s.start_pref ? `<dt>Желано начало</dt><dd>${esc(s.start_pref)}</dd>` : ''}
         <dt>Следваща доставка</dt><dd>${nd ? esc(fmtDay(nd)) : 'няма (не е активен или няма зададен ден)'}</dd></dl>
       ${contactBtns(s.phone, s.email)}
       <div class="field">Статус<div class="actions">${Object.keys(SUB_ST).map(k => `<button class="btn ${s.status === k ? 'btn--green' : 'btn--ghost'} btn--sm" data-sstatus="${k}" data-id="${esc(s.id)}">${esc(SUB_ST[k][0])}</button>`).join('')}</div></div>

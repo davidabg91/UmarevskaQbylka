@@ -567,11 +567,6 @@ function courierOffices(courier) {
 function officeLabel(courier, o) {
   return (o.aps ? (courier === 'econt' ? 'Еконтомат: ' : 'Автомат: ') : '') + o.name + (o.addr ? ' — ' + o.addr : '') + (courier === 'econt' ? '' : ' (№ ' + o.code + ')');
 }
-function econtQuote(weight, receiver) {
-  return econtCall('Shipments/LabelService.createLabel.json', { mode: 'calculate',
-    label: Object.assign({ senderOfficeCode: ECONT.sender, packCount: 1, shipmentType: 'PACK', weight: weight, shipmentDescription: 'Ябълки' }, receiver) })
-    .then(d => (d.label && typeof d.label.totalPrice === 'number' && d.label.currency === 'EUR') ? d.label.totalPrice : null);
-}
 /* тегло на пратката: килограмите ябълки + ~3,3 кг за всяка кутия сок */
 function cartWeight() {
   const kg = cart.reduce((s, i) => {
@@ -667,7 +662,7 @@ function renderOrderForm() {
         <input type="text" name="name" placeholder="Име и фамилия" aria-label="Име и фамилия" autocomplete="name" minlength="2" maxlength="120" required />
         <input type="tel" name="phone" placeholder="Телефон" aria-label="Телефон" autocomplete="tel" minlength="5" maxlength="40" required />
       </div>
-      <input type="email" name="email" placeholder="Имейл (по желание)" aria-label="Имейл" autocomplete="email" maxlength="160" />
+      <input type="email" name="email" placeholder="Имейл — за потвърждение на поръчката (по желание)" aria-label="Имейл" autocomplete="email" maxlength="160" />
 
       <span class="order-form__label">Как да получите поръчката</span>
       <div class="order-form__switch order-form__switch--3" role="radiogroup" aria-label="Начин на получаване">
@@ -717,46 +712,15 @@ function renderOrderForm() {
   const form = orderPanel.querySelector('#orderForm');
   const err = form.querySelector('.order-form__error');
   const shipEl = form.querySelector('.order-form__ship');
-  const totalEl = form.querySelector('[data-total]'), totalLabel = form.querySelector('[data-total-label]');
   const submitBtn = form.querySelector('button[type="submit"]');
   const block = n => form.querySelector('[data-block="' + n + '"]');
-  const st = { price: null, token: 0, data: {}, cityMap: new Map(), addrCities: [], addrPick: null, addrAsked: false };
-  const later = c => 'Цената на доставката ' + (c === 'speedy' ? 'със ' : 'с ') + COURIERS[c] + ' ще уточним при потвърждението.';
+  const st = { data: {}, addrCities: [], addrAsked: false };
 
-  function paint(text, price) {
-    st.price = typeof price === 'number' ? price : null;
-    shipEl.textContent = text;
-    shipEl.classList.toggle('is-price', st.price != null);
-    totalLabel.textContent = st.price != null ? 'Общо с доставката' : 'Общо';
-    totalEl.textContent = fmtEur(snap.total + (st.price || 0));
-  }
-  /* населеното място за доставка до адрес: избраното от менюто, иначе първото със същото име */
-  function addrCity() {
-    const k = normCity(form.acity.value);
-    return (st.addrPick && st.addrPick.key === k) ? st.addrPick : (st.cityMap.get(k) || null);
-  }
+  /* цената на доставката не се смята и не се добавя към поръчката — сумата е само за стоките */
   function quote() {
-    const my = ++st.token, delivery = form.delivery.value, courier = form.courier.value;
-    if (delivery === 'pickup') return paint('Вземате поръчката от наш обект — без разходи за доставка.');
-    let receiver;
-    if (delivery === 'office') {
-      const d = st.data[courier];
-      if (!d || d.down) return paint(later(courier));
-      if (!form.ooffice.value) return paint(courier === 'econt' ? 'Изберете населено място и офис, за да видите цената на доставката.' : 'Изберете населено място и офис. ' + later(courier));
-      if (courier !== 'econt') return paint(later(courier));
-      receiver = { receiverOfficeCode: form.ooffice.value };
-    } else {
-      if (courier !== 'econt') return paint(later(courier));
-      const c = addrCity();
-      if (!c) return paint(form.acity.value.trim() ? 'За това населено място цената на доставката ще уточним при потвърждението.' : 'Въведете населено място, за да видите цената на доставката.');
-      receiver = { receiverAddress: { city: { country: { code3: 'BGR' }, name: c.name, postCode: c.post } } };
-    }
-    paint('Изчисляваме доставката…');
-    econtQuote(weight, receiver).then(p => {
-      if (my !== st.token) return;
-      if (p == null) throw new Error('no price');
-      paint('Доставка с Еконт ' + (delivery === 'office' ? 'до офис' : 'до адрес') + ' за ' + String(weight).replace('.', ',') + ' кг: ' + fmtEur(p) + ' (по тарифата на Еконт)', p);
-    }).catch(() => { if (my === st.token) paint('Цената на доставката ще уточним при потвърждението.'); });
+    shipEl.textContent = form.delivery.value === 'pickup'
+      ? 'Вземате поръчката от наш обект — без разходи за доставка.'
+      : 'Сумата е само за продуктите. Доставката се уточнява при потвърждението.';
   }
   /* офисите на куриера се зареждат при първо избиране; ако не дойдат — офисът се описва с думи */
   function loadOffices(courier) {
@@ -815,8 +779,6 @@ function renderOrderForm() {
       econtCities().then(list => {
         st.addrCities = list.map(c => ({ key: normCity(c.name), name: c.name, post: c.post, sub: (c.region ? 'обл. ' + c.region + ' · ' : '') + 'п.к. ' + c.post }))
           .sort((a, b) => a.name.localeCompare(b.name, 'bg'));
-        st.addrCities.forEach(c => { if (!st.cityMap.has(c.key)) st.cityMap.set(c.key, c); });
-        if (form.isConnected) quote();
       }).catch(() => { st.addrAsked = false; });
     }
     quote();
@@ -828,10 +790,8 @@ function renderOrderForm() {
     () => { fillOffices(); quote(); form.ooffice.focus(); });
   form.ocity.addEventListener('input', () => { fillOffices(); quote(); });
   form.ooffice.addEventListener('change', quote);
-  let cityT;
   bindCombo(form.acity, form.querySelector('#orderAddrList'), () => st.addrCities, () => [],
-    it => { st.addrPick = it; clearTimeout(cityT); quote(); form.address.focus(); });
-  form.acity.addEventListener('input', () => { st.addrPick = null; clearTimeout(cityT); cityT = setTimeout(quote, 350); });
+    () => form.address.focus());
   orderPanel.querySelector('[data-order-close]').addEventListener('click', () => closeModal(orderModal));
   sync();
 
@@ -854,7 +814,7 @@ function renderOrderForm() {
       office_name: delivery !== 'office' ? null : office ? officeLabel(courier, office).slice(0, 290) : form.foffice.value.trim().slice(0, 290),
       address: delivery === 'address' ? form.address.value.trim() : null,
       pickup_place: delivery === 'pickup' ? form.pickup.value : null,
-      delivery_price: delivery === 'pickup' ? 0 : st.price,
+      delivery_price: delivery === 'pickup' ? 0 : null,
       weight_kg: weight,
       note: form.note.value.trim() || null,
       items: cart.map(i => ({ id: i.id, name: i.name, meta: i.meta, qty: i.qty, price: i.unitPrice })),
@@ -1029,6 +989,17 @@ renderCart();
     form.style.display = '';
     success.style.display = 'none';
     form.reset();
+    /* сортовете са тези, които в момента се продават в магазина */
+    var sel = document.getElementById('subVariety');
+    if (sel) {
+      var names = [];
+      document.querySelectorAll('.varieties__grid .variety[data-category="variety"] h3').forEach(function (h) {
+        var n = h.textContent.trim(); if (n && names.indexOf(n) < 0) names.push(n);
+      });
+      names.push('Микс от сортове');
+      sel.length = 1;
+      names.forEach(function (n) { sel.add(new Option(n, n)); });
+    }
     modal.classList.add('open');
     modal.setAttribute('aria-hidden', 'false');
     document.body.style.overflow = 'hidden';
@@ -1064,7 +1035,7 @@ renderCart();
         plan: current.plan, price: current.price, kg: current.kg,
         customer_name: String(fd.get('name') || '').trim(), phone: String(fd.get('phone') || '').trim(),
         email: String(fd.get('email') || '').trim() || null, address: String(fd.get('address') || '').trim() || null,
-        start_pref: String(fd.get('start') || '') || null, session_id: window.UMTrack && UMTrack.sid || null
+        variety: String(fd.get('variety') || '').slice(0, 120) || null, note: String(fd.get('note') || '').trim() || null, session_id: window.UMTrack && UMTrack.sid || null
       }).then(function (res) {
         btn.disabled = false;
         if (!res.ok) {
