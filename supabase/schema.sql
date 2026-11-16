@@ -421,3 +421,46 @@ revoke all on function public.um_order_email() from public, anon, authenticated;
 
 drop trigger if exists um_email_orders on public.orders;
 create trigger um_email_orders after insert on public.orders for each row execute function public.um_order_email();
+
+-- ============================================================================
+--  Отказ от договор (чл. 52а ЗЗП)
+--  Формата на страницата с общите условия записва отказа като запитване с kind = 'withdrawal'.
+--  Собственикът получава известие (както за всяко запитване), а клиентът — имейл с потвърждение
+--  през supabase/functions/withdrawal-email.
+-- ============================================================================
+alter table public.messages add column if not exists kind text not null default 'contact';
+alter table public.messages drop constraint if exists messages_kind_check;
+alter table public.messages add constraint messages_kind_check check (kind in ('contact', 'withdrawal'));
+alter table public.messages add column if not exists emailed_at timestamptz;
+
+drop policy if exists "public insert messages" on public.messages;
+create policy "public insert messages" on public.messages
+  for insert to anon, authenticated
+  with check (status = 'new' and notified_at is null and emailed_at is null);
+
+-- ВНИМАНИЕ: адресът по-долу е на конкретния проект; при друг проект го сменете.
+create or replace function public.um_withdrawal_email()
+returns trigger
+language plpgsql
+security definer
+set search_path = public
+as $$
+begin
+  if new.kind <> 'withdrawal' or new.email is null then return new; end if;
+  begin
+    perform net.http_post(
+      url := 'https://cjxmwgnxxxteoodtqjsp.supabase.co/functions/v1/withdrawal-email',
+      body := '{}'::jsonb,
+      headers := '{"Content-Type":"application/json"}'::jsonb,
+      timeout_milliseconds := 10000
+    );
+  exception when others then
+    null;  -- отказът никога не бива да се провали заради имейл
+  end;
+  return new;
+end;
+$$;
+revoke all on function public.um_withdrawal_email() from public, anon, authenticated;
+
+drop trigger if exists um_email_withdrawals on public.messages;
+create trigger um_email_withdrawals after insert on public.messages for each row execute function public.um_withdrawal_email();

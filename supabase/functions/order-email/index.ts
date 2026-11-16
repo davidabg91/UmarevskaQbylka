@@ -44,7 +44,7 @@ function render(o: Order) {
   const del = deliveryLines(o).filter(Boolean);
   const shipNote = o.delivery === "pickup"
     ? "Без разходи за доставка."
-    : "Сумата е само за продуктите. Цената на доставката ще уточним при потвърждението.";
+    : "Сумата е само за продуктите. Доставката се заплаща от вас на куриера при получаване, по неговата тарифа.";
   const rows = items.map((i) => `
     <tr>
       <td style="padding:10px 0;border-bottom:1px solid #eee6d8;font-size:15px;color:#22302a">${esc(i.name)}
@@ -69,9 +69,10 @@ function render(o: Order) {
           <p style="margin:8px 0 22px;font-size:13px;color:#6b7a70">${shipNote}</p>
           <h2 style="margin:0 0 6px;font-size:15px;color:#0f2a1d">Получаване</h2>
           <p style="margin:0 0 22px;font-size:15px;line-height:1.55;color:#22302a">${del.map(esc).join("<br>")}</p>
-          <p style="margin:0;font-size:15px;line-height:1.55;color:#22302a">Въпроси или промяна по поръчката? Обадете се на <a href="tel:+359896799117" style="color:#2d6a4f;font-weight:bold;text-decoration:none">${PHONE}</a>.</p>
+          <p style="margin:0 0 14px;font-size:15px;line-height:1.55;color:#22302a">Въпроси или промяна по поръчката? Обадете се на <a href="tel:+359896799117" style="color:#2d6a4f;font-weight:bold;text-decoration:none">${PHONE}</a>.</p>
+          <p style="margin:0;font-size:13px;line-height:1.55;color:#6b7a70"><a href="${SITE}/obshti-usloviya.html" style="color:#2d6a4f">Общи условия</a> · <a href="${SITE}/obshti-usloviya.html#otkaz" style="color:#2d6a4f">Право на отказ и форма за отказ</a></p>
         </td></tr>
-        <tr><td style="padding:16px 28px;background:#faf7f0;font-size:12px;color:#6b7a70">Получавате това писмо, защото направихте поръчка на <a href="${SITE}" style="color:#6b7a70">umarevska-yabalka.com</a>.</td></tr>
+        <tr><td style="padding:16px 28px;background:#faf7f0;font-size:12px;color:#6b7a70">Получавате това писмо, защото направихте поръчка на <a href="${SITE}" style="color:#6b7a70">umarevska-yabalka.com</a>. Продавач: УМАРЕВСКА ЯБЪЛКА ООД, ЕИК 208882203.</td></tr>
       </table>
     </td></tr>
   </table></body></html>`;
@@ -82,7 +83,9 @@ function render(o: Order) {
     ...items.map((i) => `${i.name} (${String(i.meta ?? "").split(" · ")[0]}) × ${i.qty} — ${money(Number(i.qty) * Number(i.price))}`),
     "Общо: " + money(o.total), shipNote, "",
     "Получаване: " + del.join(", "), "",
-    "Въпроси или промяна по поръчката? Телефон: " + PHONE, SITE,
+    "Въпроси или промяна по поръчката? Телефон: " + PHONE,
+    "Общи условия и право на отказ: " + SITE + "/obshti-usloviya.html",
+    "Продавач: УМАРЕВСКА ЯБЪЛКА ООД, ЕИК 208882203", SITE,
   ].join("\n");
   return { html, text };
 }

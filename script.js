@@ -528,7 +528,8 @@ const orderCode = () => 'UY-' + Math.random().toString(36).slice(2, 7).toUpperCa
 /* --- куриери ---
    Еконт: офисите, населените места и цената идват на живо от официалния им публичен интерфейс (без ключ).
    Спиди и Pigeon Express: офисите и автоматите се четат от таблица courier_offices, която всеки ден се
-   обновява от публичните им страници с офиси. Цена на живо двата куриера дават само с договор — уточнява се. */
+   обновява от публичните им страници с офиси. Цена на живо двата куриера дават само с договор — показва се
+   ориентировъчна цена по публичната им тарифа (SHIP_TARIFF). */
 const COURIERS = { econt: 'Еконт', speedy: 'Спиди', pigeon: 'Pigeon Express' };
 const COURIER_LOGOS = { econt: ['img/couriers/econt.svg', 86, 18], speedy: ['img/couriers/speedy.png', 72, 32], pigeon: ['img/couriers/pigeon.svg', 85, 29] };
 const ECONT = { base: 'https://ee.econt.com/services/', sender: (window.UM_CONFIG && UM_CONFIG.econtSenderOffice) || '5506', officesP: null, citiesP: null };
@@ -566,6 +567,25 @@ function courierOffices(courier) {
 }
 function officeLabel(courier, o) {
   return (o.aps ? (courier === 'econt' ? 'Еконтомат: ' : 'Автомат: ') : '') + o.name + (o.addr ? ' — ' + o.addr : '') + (courier === 'econt' ? '' : ' (№ ' + o.code + ')');
+}
+function econtQuote(weight, receiver) {
+  return econtCall('Shipments/LabelService.createLabel.json', { mode: 'calculate',
+    label: Object.assign({ senderOfficeCode: ECONT.sender, packCount: 1, shipmentType: 'PACK', weight: weight, shipmentDescription: 'Ябълки' }, receiver) })
+    .then(d => (d.label && typeof d.label.totalPrice === 'number' && d.label.currency === 'EUR') ? d.label.totalPrice : null);
+}
+/* Спиди и Pigeon Express дават цена на живо само с договор, затова тук са публичните им тарифи
+   (в евро, с ДДС; проверени на 17.11.2026): [до кг, до офис, до адрес]. Цената е само ориентир. */
+const SHIP_TARIFF = {
+  speedy: [[3, 2.69, 5.28], [6, 3.74, 8.01], [10, 4.62, 8.89], [20, 8.23, 14.22]],
+  pigeon: [[3, 2.21, 2.97], [6, 3.01, 5.13], [10, 3.74, 5.82], [15, 6.54, 11.32], [20, 7.04, 11.32], [25, 8.25, 14.83], [30, 9.5, 16.33], [35, 10.75, 17.83], [40, 12.25, 19.33]]
+};
+function tariffQuote(courier, weight, toAddress) {
+  const row = (SHIP_TARIFF[courier] || []).find(r => weight <= r[0]);
+  if (row) return row[toAddress ? 2 : 1];
+  const extra = Math.ceil(weight) - (courier === 'speedy' ? 20 : 40);
+  if (courier === 'speedy' && weight <= 31.5) return 8.23 + 0.36 * extra + (toAddress ? 8.52 : 0);
+  if (courier === 'pigeon' && weight <= 50) return (toAddress ? 19.63 : 12.25) + 0.3 * extra;
+  return null;                                   /* по-тежка пратка — цената се уточнява */
 }
 /* тегло на пратката: килограмите ябълки + ~3,3 кг за всяка кутия сок */
 function cartWeight() {
@@ -704,9 +724,10 @@ function renderOrderForm() {
       <textarea name="note" rows="2" placeholder="Бележка към поръчката (по желание)" aria-label="Бележка" maxlength="1000"></textarea>
       <input type="text" name="website" class="order-form__hp" tabindex="-1" autocomplete="off" aria-hidden="true" />
       <p class="order-form__error" role="alert" hidden></p>
+      <label class="form-consent"><input type="checkbox" name="agree" required /><span>Съгласен/на съм с <a href="obshti-usloviya.html" target="_blank" rel="noopener">Общите условия</a> и <a href="poveritelnost.html" target="_blank" rel="noopener">Политиката за поверителност</a>.</span></label>
       <div class="sub-modal__pay-row">
-        <div class="sub-modal__total"><span data-total-label>Общо</span>: <strong data-total>${fmtNum(snap.total)} €</strong></div>
-        <button type="submit" class="btn btn--primary sub-modal__pay-btn">Изпрати поръчката <svg class="ico"><use href="#i-arrow"/></svg></button>
+        <div class="sub-modal__total"><span data-total-label>Общо за продуктите</span>: <strong data-total>${fmtNum(snap.total)} €</strong></div>
+        <button type="submit" class="btn btn--primary sub-modal__pay-btn">Поръчка със задължение за плащане</button>
       </div>
     </form>`;
   const form = orderPanel.querySelector('#orderForm');
@@ -714,13 +735,46 @@ function renderOrderForm() {
   const shipEl = form.querySelector('.order-form__ship');
   const submitBtn = form.querySelector('button[type="submit"]');
   const block = n => form.querySelector('[data-block="' + n + '"]');
-  const st = { data: {}, addrCities: [], addrAsked: false };
+  const st = { token: 0, data: {}, cityMap: new Map(), addrCities: [], addrPick: null, addrAsked: false };
+  const kgText = String(weight).replace('.', ',') + ' кг';
+  const SHIP_TERMS = 'Доставката се плаща от вас на куриера при получаване и не е включена в сумата по-долу. Срок: до 24 часа след потвърждаване на поръчката.';
 
-  /* цената на доставката не се смята и не се добавя към поръчката — сумата е само за стоките */
+  /* цената на доставката е само за информация — не се добавя към сумата на поръчката */
+  function paint(text, terms) {
+    shipEl.textContent = text;
+    if (terms) { const s = document.createElement('small'); s.textContent = SHIP_TERMS; shipEl.appendChild(s); }
+  }
+  /* населеното място за доставка до адрес: избраното от менюто, иначе първото със същото име */
+  function addrCity() {
+    const k = normCity(form.acity.value);
+    return (st.addrPick && st.addrPick.key === k) ? st.addrPick : (st.cityMap.get(k) || null);
+  }
   function quote() {
-    shipEl.textContent = form.delivery.value === 'pickup'
-      ? 'Вземате поръчката от наш обект — без разходи за доставка.'
-      : 'Сумата е само за продуктите. Доставката се уточнява при потвърждението.';
+    const my = ++st.token, delivery = form.delivery.value, courier = form.courier.value;
+    if (delivery === 'pickup') return paint('Вземате поръчката от наш обект — без разходи за доставка.');
+    const how = (courier === 'speedy' ? 'със ' : 'с ') + COURIERS[courier] + (delivery === 'office' ? ' до офис' : ' до адрес') + ' за ' + kgText;
+    const later = () => paint('Цената на доставката ' + how + ' ще уточним при потвърждението.', true);
+    if (courier !== 'econt') {
+      const p = tariffQuote(courier, weight, delivery === 'address');
+      return p == null ? later() : paint('Доставка ' + how + ': около ' + fmtEur(p) + ' (ориентировъчно, по публичната тарифа на куриера).', true);
+    }
+    let receiver;
+    if (delivery === 'office') {
+      const d = st.data[courier];
+      if (!d || d.down) return later();
+      if (!form.ooffice.value) return paint('Изберете населено място и офис, за да видите цената на доставката.', true);
+      receiver = { receiverOfficeCode: form.ooffice.value };
+    } else {
+      const c = addrCity();
+      if (!c) return form.acity.value.trim() ? later() : paint('Въведете населено място, за да видите цената на доставката.', true);
+      receiver = { receiverAddress: { city: { country: { code3: 'BGR' }, name: c.name, postCode: c.post } } };
+    }
+    paint('Изчисляваме доставката…', true);
+    econtQuote(weight, receiver).then(p => {
+      if (my !== st.token) return;
+      if (p == null) throw new Error('no price');
+      paint('Доставка ' + how + ': ' + fmtEur(p) + ' (по тарифата на Еконт).', true);
+    }).catch(() => { if (my === st.token) later(); });
   }
   /* офисите на куриера се зареждат при първо избиране; ако не дойдат — офисът се описва с думи */
   function loadOffices(courier) {
@@ -779,6 +833,8 @@ function renderOrderForm() {
       econtCities().then(list => {
         st.addrCities = list.map(c => ({ key: normCity(c.name), name: c.name, post: c.post, sub: (c.region ? 'обл. ' + c.region + ' · ' : '') + 'п.к. ' + c.post }))
           .sort((a, b) => a.name.localeCompare(b.name, 'bg'));
+        st.addrCities.forEach(c => { if (!st.cityMap.has(c.key)) st.cityMap.set(c.key, c); });
+        if (form.isConnected) quote();
       }).catch(() => { st.addrAsked = false; });
     }
     quote();
@@ -790,8 +846,10 @@ function renderOrderForm() {
     () => { fillOffices(); quote(); form.ooffice.focus(); });
   form.ocity.addEventListener('input', () => { fillOffices(); quote(); });
   form.ooffice.addEventListener('change', quote);
+  let cityT;
   bindCombo(form.acity, form.querySelector('#orderAddrList'), () => st.addrCities, () => [],
-    () => form.address.focus());
+    it => { st.addrPick = it; clearTimeout(cityT); quote(); form.address.focus(); });
+  form.acity.addEventListener('input', () => { st.addrPick = null; clearTimeout(cityT); cityT = setTimeout(quote, 350); });
   orderPanel.querySelector('[data-order-close]').addEventListener('click', () => closeModal(orderModal));
   sync();
 

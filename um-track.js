@@ -1,14 +1,50 @@
 /* Анонимна статистика за собственика: посещения, време по секции, кликове, кошница.
    Не се пазят имена, имейли, IP адреси или въведен текст — само случаен номер на посещението.
-   Данните се изпращат на малки порции, когато страницата се скрие или затвори. */
+   Данните се изпращат на малки порции, когато страницата се скрие или затвори.
+
+   Статистиката тръгва САМО след съгласие на посетителя (лентата долу на екрана). Изборът се пази
+   в localStorage като um_consent = 'yes' | 'no'; без „yes“ нищо не се записва и не се изпраща.
+   Връзка с атрибут data-consent-open (във футъра) показва лентата отново. */
 (function () {
   'use strict';
   var D = window.UMData;
-  var noop = { event: function () {} };
-  if (!D || D.mode === 'off') { window.UMTrack = noop; return; }
-  try { if (localStorage.getItem('um_no_track') === '1') { window.UMTrack = noop; return; } } catch (e) {}
-  if (/bot|crawl|spider|lighthouse|headless|preview/i.test(navigator.userAgent)) { window.UMTrack = noop; return; }
+  var noop = { event: function () {}, sid: null };
+  window.UMTrack = noop;
+  var off = !D || D.mode === 'off';
+  try { if (localStorage.getItem('um_no_track') === '1') off = true; } catch (e) {}
+  var bot = /bot|crawl|spider|lighthouse|headless|preview/i.test(navigator.userAgent);
 
+  function choice() { try { return localStorage.getItem('um_consent'); } catch (e) { return null; } }
+  function forget() { try { localStorage.removeItem('um_vid'); sessionStorage.removeItem('um_sid'); } catch (e) {} }
+  var started = false, bar = null;
+  function decide(yes) {
+    try { localStorage.setItem('um_consent', yes ? 'yes' : 'no'); } catch (e) {}
+    if (bar) { bar.remove(); bar = null; }
+    if (yes) { if (!off && !bot && !started) { started = true; start(); } }
+    else { forget(); if (started) location.reload(); }       /* спира вече тръгналата статистика */
+  }
+  function showBar() {
+    if (bar) return;
+    bar = document.createElement('div');
+    bar.className = 'consent';
+    bar.setAttribute('role', 'dialog');
+    bar.setAttribute('aria-label', 'Съгласие за статистика');
+    bar.innerHTML = '<p><strong>Статистика на сайта</strong>Може ли да записваме анонимна статистика за посещенията? За нея в браузъра ви се пази случаен номер — без име, телефон или реклами. <a href="poveritelnost.html">Поверителност</a></p>'
+      + '<div class="consent__btns"><button type="button" class="btn btn--sm consent__no">Отказвам</button><button type="button" class="btn btn--sm consent__yes">Приемам</button></div>';
+    bar.querySelector('.consent__yes').addEventListener('click', function () { decide(true); });
+    bar.querySelector('.consent__no').addEventListener('click', function () { decide(false); });
+    document.body.appendChild(bar);
+  }
+  document.addEventListener('click', function (e) {
+    var a = e.target && e.target.closest ? e.target.closest('[data-consent-open]') : null;
+    if (a) { e.preventDefault(); showBar(); }
+  });
+  if (off || bot) return;
+  var c = choice();
+  if (c === 'yes') { started = true; start(); }
+  else { forget(); if (c !== 'no') showBar(); }
+
+  function start() {
   function rid() { return Math.random().toString(36).slice(2, 10) + Date.now().toString(36); }
   var sid, vid, firstPage = false, returning = false;
   try {
@@ -102,4 +138,5 @@
     sid: sid,
     event: function (type, name, data) { flush(false); send(type, name, data, true); }
   };
+  }
 })();

@@ -1114,3 +1114,41 @@ html.fx .preloader.fade-out{opacity:1;visibility:visible;transition:none;animati
   html{scroll-behavior:auto}
   *,*::before,*::after{animation-duration:.01ms !important;animation-iteration-count:1 !important;transition-duration:.01ms !important}
 }
+
+/* --- правна информация: футър, съгласие във формите, страници с условия --- */
+.footer__legal{max-width:var(--maxw);margin:1.6rem auto 0;text-align:center;color:rgba(255,255,255,.62);font-size:.86rem;line-height:1.6}
+.footer__legal strong{color:rgba(255,255,255,.85)}
+.footer__legal a{color:rgba(255,255,255,.82);text-decoration:underline;text-underline-offset:3px}
+.footer__legal a:hover{color:var(--gold)}
+.footer__legal nav{display:flex;flex-wrap:wrap;justify-content:center;gap:.4rem 1.3rem;margin-top:.7rem}
+.form-consent{display:flex;align-items:flex-start;gap:.6rem;font-size:.86rem;line-height:1.45;color:var(--muted);cursor:pointer}
+.sub-modal__form .form-consent input{flex:0 0 auto;width:20px;height:20px;min-height:0;margin:.05rem 0 0;padding:0;accent-color:var(--green)}
+.form-consent a,.contact__form-hint a{color:var(--green);font-weight:700;text-decoration:underline;text-underline-offset:2px}
+.order-form__ship small{display:block;margin-top:.35rem;font-size:.8rem;font-weight:500;line-height:1.45}
+.legal .article__body h3{scroll-margin-top:110px}
+.legal .article__body table{width:100%;border-collapse:collapse;margin:0 0 1.3rem;font-size:.95rem}
+.legal .article__body th,.legal .article__body td{text-align:left;padding:.55rem .7rem;border-bottom:1px solid var(--line);vertical-align:top}
+.legal .article__body th{color:var(--ink);font-weight:700}
+.legal__form{padding:1.2rem 1.4rem;border:1px dashed var(--line);border-radius:14px;background:var(--cream-2);margin-bottom:1.3rem}
+.legal .article__body a{color:var(--green);text-decoration:underline;text-underline-offset:3px}
+.legal__btn,.legal .article__body a.legal__btn{color:#fff;text-decoration:none}
+
+/* --- лента за съгласие за статистиката --- */
+.consent{position:fixed;left:16px;bottom:16px;z-index:900;width:min(420px,calc(100vw - 32px));padding:1.1rem 1.2rem;border-radius:18px;background:#fffdf9;color:var(--ink);
+  border:1px solid var(--line);box-shadow:0 24px 50px -20px rgba(0,0,0,.45);font-size:.9rem;line-height:1.5}
+.consent p{margin:0 0 .9rem;color:var(--muted)}
+.consent strong{display:block;color:var(--ink);font-size:1rem;margin-bottom:.25rem}
+.consent a{color:var(--green);font-weight:700;text-decoration:underline;text-underline-offset:2px}
+.consent__btns{display:flex;gap:.6rem}
+.consent__btns .btn{flex:1;justify-content:center;min-height:44px;border:1.5px solid var(--ink);background:#fff;color:var(--ink)}
+.consent__btns .consent__yes{background:var(--ink);color:#fff}
+/* --- форма за отказ от договор --- */
+.withdraw{display:grid;gap:.7rem;padding:1.3rem 1.4rem;border:1px solid var(--line);border-radius:16px;background:#fff;margin-bottom:1.3rem}
+.withdraw label{display:grid;gap:.3rem;font-size:.86rem;font-weight:700;color:var(--ink)}
+.withdraw input,.withdraw textarea{font:inherit;font-weight:500;padding:.75rem .9rem;border:1.5px solid var(--line);border-radius:12px;background:#fff;color:var(--ink);width:100%}
+.withdraw input:focus,.withdraw textarea:focus{outline:2px solid var(--green);outline-offset:1px}
+.withdraw .btn{justify-self:start}
+.withdraw__status{margin:0;font-weight:700;color:var(--green-dk)}
+.withdraw__status.is-error{color:var(--red)}
+.withdraw .order-form__hp{position:absolute;left:-9999px;width:1px;height:1px;opacity:0}
+.withdraw [hidden]{display:none}
