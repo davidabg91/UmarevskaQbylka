@@ -330,6 +330,26 @@ const fmtNum = n => (Math.round((+n || 0) * 100) / 100).toString().replace('.', 
       <button class="btn sub__btn" data-plan="${esc(pl.tier + ' — ' + pl.title)}" data-price="${esc(pl.price)}" data-kg="${esc(pl.kg)}">Абонирай се <svg class="ico"><use href="#i-arrow"/></svg></button>
     </article>`;
   }
+  /* структурирани данни за търсачките: продуктите с актуалните им цени от базата */
+  function productSchema(products) {
+    const site = 'https://umarevska-yabalka.com/';
+    const abs = u => /^https?:/i.test(u || '') ? u : site + String(u || 'img/apples.jpg').replace(/^\//, '');
+    const data = { '@context': 'https://schema.org', '@type': 'ItemList', name: 'Ябълки и ябълков сок от Умаревска Ябълка',
+      itemListElement: products.map((p, i) => {
+        const price = priceOf(p).toFixed(2);
+        const offer = { '@type': 'Offer', url: site + '#shop', priceCurrency: 'EUR', price: price, availability: 'https://schema.org/InStock',
+          seller: { '@id': site + '#organization' } };
+        if (p.sale_type === 'kg') offer.priceSpecification = { '@type': 'UnitPriceSpecification', price: price, priceCurrency: 'EUR',
+          referenceQuantity: { '@type': 'QuantitativeValue', value: 1, unitCode: 'KGM' } };
+        const item = { '@type': 'Product', name: p.category === 'variety' ? 'Ябълки ' + p.name : p.name, image: abs(p.image_url),
+          brand: { '@type': 'Brand', name: 'Умаревска Ябълка' }, offers: offer };
+        if (p.description || p.lead) item.description = p.description || p.lead;
+        return { '@type': 'ListItem', position: i + 1, item: item };
+      }) };
+    let el = document.getElementById('ldProducts');
+    if (!el) { el = document.createElement('script'); el.type = 'application/ld+json'; el.id = 'ldProducts'; document.head.appendChild(el); }
+    el.textContent = JSON.stringify(data);
+  }
   function refresh(scope) {
     scope.querySelectorAll('.reveal').forEach((el, i) => el.style.setProperty('--ri', i % 4));
     observeReveal(scope);
@@ -381,6 +401,7 @@ const fmtNum = n => (Math.round((+n || 0) * 100) / 100).toString().replace('.', 
     if (grid && products && products.length) {
       byId.clear(); products.forEach(p => byId.set(String(p.id), p));
       grid.innerHTML = products.map(card).join('');
+      productSchema(products);
       grid.querySelectorAll('.variety').forEach((c, i) => { c.style.viewTransitionName = 'shop-card-' + i; });
       refresh(grid);
     }
@@ -506,8 +527,10 @@ const orderCode = () => 'UY-' + Math.random().toString(36).slice(2, 7).toUpperCa
 
 /* --- куриери ---
    Еконт: офисите, населените места и цената идват на живо от официалния им публичен интерфейс (без ключ).
-   Спиди и Pigeon Express дават тези данни само с договор и ключ, затова при тях офисът се описва с думи. */
+   Спиди и Pigeon Express: офисите и автоматите се четат от таблица courier_offices, която всеки ден се
+   обновява от публичните им страници с офиси. Цена на живо двата куриера дават само с договор — уточнява се. */
 const COURIERS = { econt: 'Еконт', speedy: 'Спиди', pigeon: 'Pigeon Express' };
+const COURIER_LOGOS = { econt: ['img/couriers/econt.svg', 86, 18], speedy: ['img/couriers/speedy.png', 72, 32], pigeon: ['img/couriers/pigeon.svg', 85, 29] };
 const ECONT = { base: 'https://ee.econt.com/services/', sender: (window.UM_CONFIG && UM_CONFIG.econtSenderOffice) || '5506', officesP: null, citiesP: null };
 function econtCall(path, body) {
   return fetch(ECONT.base + path, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) })
@@ -526,6 +549,24 @@ function econtCities() {
     .catch(e => { ECONT.citiesP = null; throw e; });
   return ECONT.citiesP;
 }
+/* офиси и автомати на куриер като { code, name, aps, city, addr } */
+const COURIER_OFFICES = {};
+function courierOffices(courier) {
+  if (courier === 'econt') return econtOffices();
+  if (!COURIER_OFFICES[courier]) COURIER_OFFICES[courier] = (UM_DATA.publicSelect
+      ? UM_DATA.publicSelect('courier_offices', { columns: 'code,name,city,address,kind', filters: [['courier', 'eq', courier]], order: 'code.asc', all: true })
+      : Promise.reject(new Error('no data layer')))
+    .then(rows => {
+      if (!rows || !rows.length) throw new Error('no offices');
+      return rows.map(r => ({ code: String(r.code), name: r.name, aps: r.kind === 'automat', city: r.city,
+        addr: String(r.address || '').replace(/^обл\.[^,]*,[^,]*,\s*/i, '') }));       /* без „обл. …, гр. …,“ — градът вече е избран */
+    })
+    .catch(e => { COURIER_OFFICES[courier] = null; throw e; });
+  return COURIER_OFFICES[courier];
+}
+function officeLabel(courier, o) {
+  return (o.aps ? (courier === 'econt' ? 'Еконтомат: ' : 'Автомат: ') : '') + o.name + (o.addr ? ' — ' + o.addr : '') + (courier === 'econt' ? '' : ' (№ ' + o.code + ')');
+}
 function econtQuote(weight, receiver) {
   return econtCall('Shipments/LabelService.createLabel.json', { mode: 'calculate',
     label: Object.assign({ senderOfficeCode: ECONT.sender, packCount: 1, shipmentType: 'PACK', weight: weight, shipmentDescription: 'Ябълки' }, receiver) })
@@ -543,6 +584,71 @@ function cartWeight() {
 }
 const normCity = s => String(s || '').trim().toLowerCase().replace(/^(гр\.|с\.|град|село)\s*/, '');
 const fmtEur = n => (Math.round(n * 100) / 100).toFixed(2).replace('.', ',').replace(/,00$/, '') + ' €';
+
+/* Падащо меню под текстово поле: пишеш → излизат съвпадения → избираш (мишка, пръст или стрелки + Enter).
+   items() връща [{ key, name, sub }], popular() — какво да се покаже, преди да е написано нещо. */
+function bindCombo(input, list, items, popular, onPick) {
+  let shown = [], active = -1;
+  const close = () => { list.hidden = true; input.setAttribute('aria-expanded', 'false'); active = -1; };
+  const mark = () => Array.from(list.children).forEach((li, n) => {
+    li.classList.toggle('is-active', n === active);
+    li.setAttribute('aria-selected', n === active ? 'true' : 'false');
+    if (n === active) li.scrollIntoView({ block: 'nearest' });
+  });
+  function open() {
+    const q = normCity(input.value), all = items();
+    if (!all.length) return close();
+    if (!q) shown = popular();
+    else {
+      const starts = [], has = [];
+      for (const it of all) {
+        if (it.key.startsWith(q)) starts.push(it);
+        else if (has.length < 30 && it.key.includes(q)) has.push(it);
+      }
+      starts.sort((a, b) => (b.w || 0) - (a.w || 0));          /* при офисите: по-големите населени места първи */
+      shown = starts.concat(has).slice(0, 50);
+    }
+    if (!q && !shown.length) return close();
+    active = q && shown.length ? 0 : -1;
+    list.innerHTML = shown.length
+      ? shown.map((it, n) => `<li role="option" data-n="${n}"><span>${escHtml(it.name)}</span>${it.sub ? `<small>${escHtml(it.sub)}</small>` : ''}</li>`).join('')
+      : '<li class="combo__empty">Няма такова населено място в списъка</li>';
+    list.hidden = false;
+    list.scrollTop = 0;
+    input.setAttribute('aria-expanded', 'true');
+    mark();
+    list.scrollIntoView({ block: 'nearest' });              /* менюто да се вижда цялото в прозореца на поръчката */
+  }
+  function pick(n) {
+    const it = shown[n];
+    if (!it) return;
+    input.value = it.name;
+    close();
+    onPick(it);
+  }
+  input.addEventListener('input', open);
+  input.addEventListener('focus', open);
+  input.addEventListener('click', () => { if (list.hidden) open(); });
+  input.addEventListener('blur', () => setTimeout(close, 160));
+  input.addEventListener('keydown', e => {
+    if (e.key === 'ArrowDown' || e.key === 'ArrowUp') {
+      if (list.hidden) return open();
+      e.preventDefault();
+      if (!shown.length) return;
+      active = (active + (e.key === 'ArrowDown' ? 1 : -1) + shown.length) % shown.length;
+      mark();
+    } else if (e.key === 'Enter' && !list.hidden) {
+      e.preventDefault();                                   /* Enter избира от менюто, не изпраща формата */
+      if (active >= 0) pick(active); else close();
+    } else if (e.key === 'Escape' && !list.hidden) {
+      e.stopPropagation();
+      close();
+    }
+  });
+  list.addEventListener('mousedown', e => e.preventDefault());   /* полето да не губи фокуса при избор */
+  list.addEventListener('click', e => { const li = e.target.closest('li[data-n]'); if (li) pick(+li.dataset.n); });
+  return { open, close };
+}
 
 function renderOrderForm() {
   const snap = cartSnapshot();
@@ -572,23 +678,27 @@ function renderOrderForm() {
 
       <div data-block="couriers">
         <span class="order-form__label">Куриер</span>
-        <div class="order-form__switch order-form__switch--3" role="radiogroup" aria-label="Куриер">
-          ${Object.keys(COURIERS).map((k, n) => `<label><input type="radio" name="courier" value="${k}"${n ? '' : ' checked'} /><span>${escHtml(COURIERS[k])}</span></label>`).join('')}
+        <div class="order-form__switch order-form__switch--3 order-form__switch--logos" role="radiogroup" aria-label="Куриер">
+          ${Object.keys(COURIERS).map((k, n) => `<label><input type="radio" name="courier" value="${k}"${n ? '' : ' checked'} aria-label="${escHtml(COURIERS[k])}" /><span><img src="${COURIER_LOGOS[k][0]}" alt="${escHtml(COURIERS[k])}" width="${COURIER_LOGOS[k][1]}" height="${COURIER_LOGOS[k][2]}" decoding="async" /></span></label>`).join('')}
         </div>
       </div>
 
-      <div data-block="econt-office" class="order-form__group">
-        <input type="text" name="ecity" list="orderEcontCities" placeholder="Населено място (започнете да пишете)" aria-label="Населено място" autocomplete="off" maxlength="120" />
-        <datalist id="orderEcontCities"></datalist>
-        <select name="eoffice" aria-label="Офис или еконтомат"><option value="">Първо изберете населено място</option></select>
+      <div data-block="office" class="order-form__group">
+        <div class="combo">
+          <input type="text" name="ocity" placeholder="Населено място — започнете да пишете" aria-label="Населено място" autocomplete="off" autocapitalize="words" spellcheck="false" maxlength="120" role="combobox" aria-autocomplete="list" aria-expanded="false" aria-controls="orderCityList" />
+          <ul class="combo__list" id="orderCityList" role="listbox" aria-label="Населени места" hidden></ul>
+        </div>
+        <select name="ooffice" aria-label="Офис или автомат"><option value="">Първо изберете населено място</option></select>
       </div>
       <div data-block="free-office" class="order-form__group">
         <input type="text" name="fcity" placeholder="Населено място" aria-label="Населено място" autocomplete="address-level2" maxlength="120" />
         <input type="text" name="foffice" placeholder="Офис — име или адрес на офиса" aria-label="Офис" maxlength="280" />
       </div>
       <div data-block="address" class="order-form__group">
-        <input type="text" name="acity" list="orderAddrCities" placeholder="Населено място" aria-label="Населено място" autocomplete="address-level2" maxlength="120" />
-        <datalist id="orderAddrCities"></datalist>
+        <div class="combo">
+          <input type="text" name="acity" placeholder="Населено място — започнете да пишете" aria-label="Населено място" autocomplete="off" autocapitalize="words" spellcheck="false" maxlength="120" role="combobox" aria-autocomplete="list" aria-expanded="false" aria-controls="orderAddrList" />
+          <ul class="combo__list" id="orderAddrList" role="listbox" aria-label="Населени места" hidden></ul>
+        </div>
         <textarea name="address" rows="2" placeholder="Улица, №, блок, вход, етаж, апартамент" aria-label="Адрес за доставка" autocomplete="street-address" maxlength="380"></textarea>
       </div>
       <select name="pickup" data-block="pickup" aria-label="Обект за вземане">
@@ -610,7 +720,8 @@ function renderOrderForm() {
   const totalEl = form.querySelector('[data-total]'), totalLabel = form.querySelector('[data-total-label]');
   const submitBtn = form.querySelector('button[type="submit"]');
   const block = n => form.querySelector('[data-block="' + n + '"]');
-  const st = { price: null, token: 0, econtDown: false, offices: [], cityMap: new Map() };
+  const st = { price: null, token: 0, data: {}, cityMap: new Map(), addrCities: [], addrPick: null, addrAsked: false };
+  const later = c => 'Цената на доставката ' + (c === 'speedy' ? 'със ' : 'с ') + COURIERS[c] + ' ще уточним при потвърждението.';
 
   function paint(text, price) {
     st.price = typeof price === 'number' ? price : null;
@@ -619,16 +730,24 @@ function renderOrderForm() {
     totalLabel.textContent = st.price != null ? 'Общо с доставката' : 'Общо';
     totalEl.textContent = fmtEur(snap.total + (st.price || 0));
   }
+  /* населеното място за доставка до адрес: избраното от менюто, иначе първото със същото име */
+  function addrCity() {
+    const k = normCity(form.acity.value);
+    return (st.addrPick && st.addrPick.key === k) ? st.addrPick : (st.cityMap.get(k) || null);
+  }
   function quote() {
     const my = ++st.token, delivery = form.delivery.value, courier = form.courier.value;
     if (delivery === 'pickup') return paint('Вземате поръчката от наш обект — без разходи за доставка.');
-    if (courier !== 'econt' || st.econtDown) return paint('Цената на доставката ' + (courier === 'speedy' ? 'със ' : 'с ') + COURIERS[courier] + ' ще уточним при потвърждението.');
     let receiver;
     if (delivery === 'office') {
-      if (!form.eoffice.value) return paint('Изберете населено място и офис, за да видите цената на доставката.');
-      receiver = { receiverOfficeCode: form.eoffice.value };
+      const d = st.data[courier];
+      if (!d || d.down) return paint(later(courier));
+      if (!form.ooffice.value) return paint(courier === 'econt' ? 'Изберете населено място и офис, за да видите цената на доставката.' : 'Изберете населено място и офис. ' + later(courier));
+      if (courier !== 'econt') return paint(later(courier));
+      receiver = { receiverOfficeCode: form.ooffice.value };
     } else {
-      const c = st.cityMap.get(normCity(form.acity.value));
+      if (courier !== 'econt') return paint(later(courier));
+      const c = addrCity();
       if (!c) return paint(form.acity.value.trim() ? 'За това населено място цената на доставката ще уточним при потвърждението.' : 'Въведете населено място, за да видите цената на доставката.');
       receiver = { receiverAddress: { city: { country: { code3: 'BGR' }, name: c.name, postCode: c.post } } };
     }
@@ -639,50 +758,80 @@ function renderOrderForm() {
       paint('Доставка с Еконт ' + (delivery === 'office' ? 'до офис' : 'до адрес') + ' за ' + String(weight).replace('.', ',') + ' кг: ' + fmtEur(p) + ' (по тарифата на Еконт)', p);
     }).catch(() => { if (my === st.token) paint('Цената на доставката ще уточним при потвърждението.'); });
   }
+  /* офисите на куриера се зареждат при първо избиране; ако не дойдат — офисът се описва с думи */
+  function loadOffices(courier) {
+    if (st.data[courier]) return;
+    const d = st.data[courier] = { list: [], cities: [], popular: [], ready: false, down: false };
+    courierOffices(courier).then(list => {
+      const m = new Map();
+      list.forEach(o => {
+        const k = normCity(o.city);
+        const c = m.get(k) || { key: k, name: o.city, offices: 0, automats: 0 };
+        if (o.aps) c.automats++; else c.offices++;
+        m.set(k, c);
+      });
+      d.cities = Array.from(m.values()).sort((a, b) => a.name.localeCompare(b.name, 'bg'));
+      d.cities.forEach(c => {
+        c.sub = [c.offices ? c.offices + (c.offices === 1 ? ' офис' : ' офиса') : '', c.automats ? c.automats + (c.automats === 1 ? ' автомат' : ' автомата') : ''].filter(Boolean).join(' · ');
+      });
+      d.cities.forEach(c => { c.w = c.offices + c.automats; });
+      d.popular = d.cities.slice().sort((a, b) => b.w - a.w).slice(0, 8);
+      d.list = list;
+      d.ready = true;
+    }).catch(() => { d.down = true; }).then(() => { if (form.isConnected && form.courier.value === courier) sync(); });
+  }
   function fillOffices() {
-    const key = normCity(form.ecity.value);
-    const list = st.offices.filter(o => normCity(o.city) === key).sort((a, b) => (a.aps - b.aps) || a.name.localeCompare(b.name, 'bg'));
-    form.eoffice.innerHTML = list.length
-      ? '<option value="">Изберете офис или еконтомат (' + list.length + ')</option>' + list.map(o => `<option value="${escHtml(o.code)}">${o.aps ? 'Еконтомат: ' : ''}${escHtml(o.name)} — ${escHtml(o.addr)}</option>`).join('')
-      : '<option value="">' + (form.ecity.value.trim() ? 'Няма офис на Еконт в това населено място' : 'Първо изберете населено място') + '</option>';
-    quote();
+    const courier = form.courier.value, d = st.data[courier], key = normCity(form.ocity.value);
+    const list = d && d.ready && key ? d.list.filter(o => normCity(o.city) === key).sort((a, b) => (a.aps - b.aps) || a.name.localeCompare(b.name, 'bg')) : [];
+    form.ooffice.innerHTML = list.length
+      ? '<option value="">Изберете ' + (courier === 'econt' ? 'офис или еконтомат' : 'офис или автомат') + ' (' + list.length + ')</option>'
+        + list.map(o => `<option value="${escHtml(o.code)}">${escHtml(officeLabel(courier, o))}</option>`).join('')
+      : '<option value="">' + (!d || !d.ready ? 'Зареждаме офисите…' : key ? 'Няма офис на ' + COURIERS[courier] + ' в това населено място' : 'Първо изберете населено място') + '</option>';
+    if (list.length === 1) form.ooffice.value = list[0].code;
   }
   function sync() {
     const delivery = form.delivery.value, courier = form.courier.value, ship = delivery !== 'pickup';
-    const eOffice = ship && delivery === 'office' && courier === 'econt' && !st.econtDown;
-    const fOffice = ship && delivery === 'office' && !eOffice;
+    const toOffice = ship && delivery === 'office';
+    if (toOffice) loadOffices(courier);
+    const d = st.data[courier];
+    const pick = toOffice && !(d && d.down);      /* меню с град и офис */
+    const free = toOffice && !pick;                /* списъкът с офиси не е достъпен */
     const addr = delivery === 'address';
     block('couriers').hidden = !ship;
-    block('econt-office').hidden = !eOffice;
-    block('free-office').hidden = !fOffice;
+    block('office').hidden = !pick;
+    block('free-office').hidden = !free;
     block('address').hidden = !addr;
     block('pickup').hidden = ship;
-    form.ecity.required = form.eoffice.required = eOffice;
-    form.fcity.required = form.foffice.required = fOffice;
+    form.ocity.required = form.ooffice.required = pick;
+    form.fcity.required = form.foffice.required = free;
     form.acity.required = form.address.required = addr;
-    if (eOffice && !st.offices.length) {
-      econtOffices().then(list => {
-        st.offices = list;
-        const names = Array.from(new Set(list.map(o => o.city))).sort((a, b) => a.localeCompare(b, 'bg'));
-        form.querySelector('#orderEcontCities').innerHTML = names.map(n => `<option value="${escHtml(n)}"></option>`).join('');
-        fillOffices();
-      }).catch(() => { st.econtDown = true; sync(); });   /* ако Еконт не отговаря — офисът се описва с думи */
+    if (pick) {
+      form.ocity.placeholder = d && d.ready ? 'Населено място — започнете да пишете' : 'Зареждаме офисите на ' + COURIERS[courier] + '…';
+      fillOffices();
     }
-    if (addr && courier === 'econt' && !st.econtDown && !st.cityMap.size) {
+    if (free && !form.fcity.value) form.fcity.value = form.ocity.value;
+    if (addr && !st.addrAsked) {                    /* предложения за населено място (номенклатурата на Еконт) */
+      st.addrAsked = true;
       econtCities().then(list => {
-        list.forEach(c => { const k = normCity(c.name); if (!st.cityMap.has(k)) st.cityMap.set(k, c); });
-        form.querySelector('#orderAddrCities').innerHTML = Array.from(st.cityMap.values()).sort((a, b) => a.name.localeCompare(b.name, 'bg'))
-          .map(c => `<option value="${escHtml(c.name)}">${escHtml(c.region ? 'обл. ' + c.region : '')}</option>`).join('');
-        quote();
-      }).catch(() => {});
+        st.addrCities = list.map(c => ({ key: normCity(c.name), name: c.name, post: c.post, sub: (c.region ? 'обл. ' + c.region + ' · ' : '') + 'п.к. ' + c.post }))
+          .sort((a, b) => a.name.localeCompare(b.name, 'bg'));
+        st.addrCities.forEach(c => { if (!st.cityMap.has(c.key)) st.cityMap.set(c.key, c); });
+        if (form.isConnected) quote();
+      }).catch(() => { st.addrAsked = false; });
     }
     quote();
   }
   form.querySelectorAll('input[name="delivery"],input[name="courier"]').forEach(r => r.addEventListener('change', sync));
-  form.ecity.addEventListener('input', fillOffices);
-  form.eoffice.addEventListener('change', quote);
+  bindCombo(form.ocity, form.querySelector('#orderCityList'),
+    () => { const d = st.data[form.courier.value]; return d && d.ready ? d.cities : []; },
+    () => { const d = st.data[form.courier.value]; return d && d.ready ? d.popular : []; },
+    () => { fillOffices(); quote(); form.ooffice.focus(); });
+  form.ocity.addEventListener('input', () => { fillOffices(); quote(); });
+  form.ooffice.addEventListener('change', quote);
   let cityT;
-  form.acity.addEventListener('input', () => { clearTimeout(cityT); cityT = setTimeout(quote, 350); });
+  bindCombo(form.acity, form.querySelector('#orderAddrList'), () => st.addrCities, () => [],
+    it => { st.addrPick = it; clearTimeout(cityT); quote(); form.address.focus(); });
+  form.acity.addEventListener('input', () => { st.addrPick = null; clearTimeout(cityT); cityT = setTimeout(quote, 350); });
   orderPanel.querySelector('[data-order-close]').addEventListener('click', () => closeModal(orderModal));
   sync();
 
@@ -690,8 +839,8 @@ function renderOrderForm() {
     e.preventDefault();
     if (form.website.value) { renderOrderDone(''); return; }      /* капан за ботове */
     const delivery = form.delivery.value, courier = delivery === 'pickup' ? null : form.courier.value;
-    const eOffice = delivery === 'office' && courier === 'econt' && !st.econtDown;
-    const office = eOffice ? st.offices.find(o => o.code === form.eoffice.value) : null;
+    const picked = delivery === 'office' && !block('office').hidden;      /* офисът е избран от меню */
+    const office = picked && st.data[courier] ? st.data[courier].list.find(o => o.code === form.ooffice.value) : null;
     const code = orderCode();
     const row = {
       code: code,
@@ -700,9 +849,9 @@ function renderOrderForm() {
       email: form.email.value.trim() || null,
       delivery: delivery,
       courier: courier,
-      city: delivery === 'pickup' ? null : (eOffice ? (office ? office.city : form.ecity.value.trim()) : delivery === 'office' ? form.fcity.value.trim() : form.acity.value.trim()) || null,
+      city: delivery === 'pickup' ? null : (picked ? (office ? office.city : form.ocity.value.trim()) : delivery === 'office' ? form.fcity.value.trim() : form.acity.value.trim()) || null,
       office_code: office ? office.code : null,
-      office_name: delivery !== 'office' ? null : office ? ((office.aps ? 'Еконтомат: ' : '') + office.name + ' — ' + office.addr).slice(0, 290) : form.foffice.value.trim().slice(0, 290),
+      office_name: delivery !== 'office' ? null : office ? officeLabel(courier, office).slice(0, 290) : form.foffice.value.trim().slice(0, 290),
       address: delivery === 'address' ? form.address.value.trim() : null,
       pickup_place: delivery === 'pickup' ? form.pickup.value : null,
       delivery_price: delivery === 'pickup' ? 0 : st.price,
@@ -756,8 +905,8 @@ const articles = window.ARTICLES || [];
 const blogGrid = document.getElementById('blogGrid');
 if (blogGrid) {
   blogGrid.innerHTML = articles.map((a, i) => `
-    <a class="post reveal" href="article.html?id=${i}">
-      <div class="post__cover"><img src="${a.img}" alt="${a.title}" loading="lazy" onerror="this.parentNode.style.background='${a.bg}';this.parentNode.style.display='grid';this.parentNode.style.placeItems='center';this.parentNode.style.fontSize='3.4rem';this.outerHTML='${a.icon}'"></div>
+    <a class="post reveal" href="${a.slug ? 'blog-' + a.slug + '.html' : 'article.html?id=' + i}">
+      <div class="post__cover"><img src="${a.img}" alt="${a.title}" width="${(a.imgSize || [1200, 800])[0]}" height="${(a.imgSize || [1200, 800])[1]}" loading="lazy" decoding="async" onerror="this.parentNode.style.background='${a.bg}';this.parentNode.style.display='grid';this.parentNode.style.placeItems='center';this.parentNode.style.fontSize='3.4rem';this.outerHTML='${a.icon}'"></div>
       <div class="post__body">
         <span class="post__cat">${a.cat}</span>
         <h3 class="post__title">${a.title}</h3>

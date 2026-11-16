@@ -343,6 +343,37 @@ create policy "admin update product images" on storage.objects for update to aut
 drop policy if exists "admin delete product images" on storage.objects;
 create policy "admin delete product images" on storage.objects for delete to authenticated using (bucket_id = 'products' and public.is_admin());
 
+-- офиси и автомати на Спиди и Pigeon Express за менюто във формата за поръчка.
+-- Пълни се от функцията courier-sync (supabase/functions/courier-sync), която чете публичните им
+-- страници с офиси; посетителите само четат. Офисите на Еконт идват на живо от техния интерфейс.
+create table if not exists public.courier_offices (
+  courier    text not null check (courier in ('speedy', 'pigeon')),
+  code       text not null check (char_length(code) <= 30),
+  name       text not null check (char_length(name) <= 200),
+  city       text not null check (char_length(city) <= 120),
+  address    text check (char_length(address) <= 300),
+  kind       text not null default 'office' check (kind in ('office', 'automat')),
+  updated_at timestamptz not null default now(),
+  primary key (courier, code)
+);
+create index if not exists courier_offices_city_idx on public.courier_offices (courier, city);
+alter table public.courier_offices enable row level security;
+grant select on public.courier_offices to anon, authenticated;
+drop policy if exists "public read courier offices" on public.courier_offices;
+create policy "public read courier offices" on public.courier_offices for select to anon, authenticated using (true);
+
+-- всекидневно обновяване на офисите в 03:40 UTC (адресът е публичен и не носи ключове)
+create extension if not exists pg_cron;
+select cron.unschedule(jobid) from cron.job where jobname = 'courier-offices-sync';
+select cron.schedule('courier-offices-sync', '40 3 * * *', $job$
+  select net.http_post(
+    url := 'https://cjxmwgnxxxteoodtqjsp.supabase.co/functions/v1/courier-sync',
+    headers := '{"Content-Type":"application/json"}'::jsonb,
+    body := '{}'::jsonb,
+    timeout_milliseconds := 120000
+  );
+$job$);
+
 -- ============================================================================
 --  Администраторът се добавя ОТДЕЛНО (имейлът не стои в този публичен файл):
 --     insert into public.admins (email) values ('имейл-на-собственика');

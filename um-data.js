@@ -209,7 +209,15 @@
       var url = BASE + '/rest/v1/' + table + '?select=' + encodeURIComponent(q.columns || '*');
       (q.filters || []).forEach(function (f) { url += '&' + encodeURIComponent(f[0]) + '=' + f[1] + '.' + encodeURIComponent(f[2]); });
       url += '&order=' + (q.order || 'created_at.desc');
-      return fetch(url, { headers: headers() }).then(function (r) { return r.ok ? r.json() : fail(r); });
+      if (!q.all) return fetch(url, { headers: headers() }).then(function (r) { return r.ok ? r.json() : fail(r); });
+      /* q.all: таблици с над 1000 реда се четат на страници */
+      var out = [];
+      var page = function (from) {
+        return fetch(url + '&limit=1000&offset=' + from, { headers: headers() })
+          .then(function (r) { return r.ok ? r.json() : fail(r); })
+          .then(function (rows) { out = out.concat(rows); return rows.length === 1000 ? page(from + 1000) : out; });
+      };
+      return page(0);
     },
     /* админ: запис „добави или замени“ по ключ (напр. настройки) */
     adminUpsert: function (table, row, conflict) {

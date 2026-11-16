@@ -692,6 +692,17 @@ html.fx .mvideo__btn::after{animation:ring 2.6s var(--ease) 1.3s infinite}
 .mpress:hover .mpress__arrow .ico{transform:translate(2px,-2px)}
 
 /* ===== CONTACT ===== */
+/* ===== ЧЕСТИ ВЪПРОСИ ===== */
+.faq{position:relative;padding:clamp(2.5rem,6vw,5rem) clamp(1rem,4vw,3rem) clamp(1.5rem,4vw,3rem)}
+.faq__list{position:relative;z-index:1;max-width:820px;margin:0 auto;display:grid;gap:.8rem}
+.faq__item{background:#fff;border:1.5px solid var(--line);border-radius:18px;overflow:hidden;transition:border-color .3s,box-shadow .3s}
+.faq__item[open]{border-color:color-mix(in srgb,var(--green) 45%,var(--line));box-shadow:0 18px 40px -26px rgba(20,35,25,.35)}
+.faq__item summary{list-style:none;cursor:pointer;display:flex;align-items:center;justify-content:space-between;gap:1rem;padding:1.15rem 1.3rem;font-family:var(--font-d);font-weight:600;font-size:1.12rem;line-height:1.3;color:var(--ink)}
+.faq__item summary::-webkit-details-marker{display:none}
+.faq__item summary::after{content:'+';flex:none;width:30px;height:30px;border-radius:50%;display:grid;place-items:center;font-family:var(--font-b);font-size:1.2rem;font-weight:600;line-height:1;color:var(--green-dk);background:var(--cream-2);transition:transform .3s var(--ease)}
+.faq__item[open] summary::after{transform:rotate(45deg)}
+.faq__item summary:focus-visible{outline:2.5px solid var(--gold);outline-offset:-3px}
+.faq__item p{margin:0;padding:0 1.3rem 1.25rem;color:var(--muted);line-height:1.65;max-width:68ch}
 .contact{padding:clamp(2.5rem,6vw,5rem) clamp(.7rem,2vw,1.4rem) clamp(3.5rem,7vw,6rem)}
 .contact__card{position:relative;z-index:1;max-width:var(--maxw);margin:0 auto;background:var(--card);border:1px solid var(--line);border-radius:clamp(26px,3.6vw,40px);box-shadow:var(--shadow-lg);
   display:grid;grid-template-columns:1.08fr 1fr;padding:.7rem;overflow:hidden}
@@ -922,6 +933,23 @@ html.fx .preloader.fade-out{opacity:1;visibility:visible;transition:none;animati
 .order-form__switch--3{grid-template-columns:repeat(3,1fr)}
 .order-form__switch--3 span{font-size:.84rem;padding:.7rem .3rem;line-height:1.2;height:100%;display:grid;place-items:center}
 .order-form__group{display:flex;flex-direction:column;gap:.8rem}
+/* куриери с лого: бели плочки, избраната е с рамка и отметка */
+.order-form__switch--logos{gap:.5rem;padding:0;background:none}
+.order-form__switch--logos span{position:relative;min-height:58px;padding:.55rem .5rem;background:#fff;border-color:var(--line);border-radius:14px}
+.order-form__switch--logos img{display:block;max-width:100%;height:auto}
+.order-form__switch--logos label:hover span{border-color:color-mix(in srgb,var(--green) 45%,var(--line))}
+.order-form__switch--logos input:checked+span{border-color:var(--green);box-shadow:0 0 0 3px rgba(45,106,79,.14)}
+.order-form__switch--logos input:checked+span::after{content:'✓';position:absolute;top:-7px;right:-7px;width:20px;height:20px;border-radius:50%;display:grid;place-items:center;font-size:.68rem;font-weight:800;line-height:1;color:#fff;background:var(--green);border:2px solid #fff}
+/* поле с падащо меню (населено място) */
+.combo{position:relative}
+.sub-modal__form .combo input{width:100%;padding-right:2.6rem}
+.combo::after{content:'';position:absolute;right:1.15rem;top:1.5rem;width:.5rem;height:.5rem;margin-top:-.4rem;border-right:2px solid var(--muted);border-bottom:2px solid var(--muted);transform:rotate(45deg);pointer-events:none}
+.combo__list{position:absolute;z-index:6;left:0;right:0;top:calc(100% + 6px);margin:0;padding:.35rem;list-style:none;max-height:236px;overflow-y:auto;overscroll-behavior:contain;background:#fff;border:1.5px solid var(--line);border-radius:14px;box-shadow:0 22px 44px -20px rgba(20,35,25,.4)}
+.combo__list li{display:flex;align-items:baseline;justify-content:space-between;gap:.8rem;padding:.62rem .75rem;border-radius:10px;font-size:.95rem;font-weight:600;color:var(--ink);cursor:pointer}
+.combo__list li small{flex:none;font-size:.74rem;font-weight:600;color:var(--muted);white-space:nowrap}
+.combo__list li:hover,.combo__list li.is-active{background:var(--cream-2);color:var(--green-dk)}
+.combo__list li.combo__empty,.combo__list li.combo__empty:hover{cursor:default;background:none;color:var(--muted);font-weight:500;font-size:.88rem}
+.combo__list[hidden]{display:none}
 .order-form__ship{margin:0;padding:.75rem 1rem;border-radius:12px;font-size:.9rem;font-weight:600;color:var(--muted);background:var(--cream-2)}
 .order-form__ship.is-price{color:var(--green-dk);background:color-mix(in srgb,var(--green-lt) 18%,#fff)}
 .order-form [hidden],.order-form__error[hidden]{display:none}
