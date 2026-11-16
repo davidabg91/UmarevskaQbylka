@@ -385,7 +385,7 @@ html.lb-open{overflow:hidden}
 .lightbox__btn--next{right:clamp(.6rem,2.5vw,1.8rem);top:50%;margin-top:-25px}
 
 /* ===== SHOP ===== */
-.shop{padding:clamp(5rem,9vw,8.5rem) 1.4rem clamp(9rem,17vw,15rem)}
+.shop{padding:clamp(5rem,9vw,8.5rem) 1.4rem clamp(9rem,17vw,15rem);overflow-anchor:none}
 .shop::before{content:"";position:absolute;right:-22vw;top:8%;width:64vw;height:64vw;max-width:900px;max-height:900px;pointer-events:none;
   background:radial-gradient(closest-side,rgba(193,39,45,.09),transparent)}
 .shop::after{content:"";position:absolute;left:-24vw;bottom:4%;width:60vw;height:60vw;max-width:860px;max-height:860px;pointer-events:none;
@@ -1040,10 +1040,12 @@ html.fx .preloader.fade-out{opacity:1;visibility:visible;transition:none;animati
   .nav__links a{padding:.55rem .6rem;font-size:.92rem}
 }
 @media(max-width:860px){
-  .nav__links{position:fixed;inset:0;z-index:5;flex-direction:column;justify-content:center;align-items:flex-start;gap:.3rem;padding:6rem 1.8rem 3rem;
+  .nav__links{position:fixed;inset:0;z-index:5;flex-direction:column;justify-content:center;align-items:flex-start;gap:.3rem;padding:9rem 1.8rem 3rem;
     background:radial-gradient(70% 50% at 100% 0%,rgba(233,185,73,.2),transparent 65%),radial-gradient(60% 50% at 0% 100%,rgba(82,183,136,.25),transparent 65%),var(--green-deep);
     clip-path:circle(0 at calc(100% - 50px) 46px);visibility:hidden;transition:clip-path .8s var(--ease-io),visibility 0s .8s}
   .nav__links.open{clip-path:circle(150% at calc(100% - 50px) 46px);visibility:visible;transition:clip-path .8s var(--ease-io),visibility 0s}
+  /* логото най-горе в отвореното меню */
+  .nav__links::before{content:"";position:absolute;top:1.1rem;left:50%;translate:-50% 0;width:clamp(120px,36vw,160px);aspect-ratio:640/466;background:url(img/logo.webp) center/contain no-repeat;pointer-events:none}
   .nav__links a,.nav.scrolled .nav__links a,.nav--solid .nav__links a{color:#fff;font-family:var(--font-d);font-weight:600;font-size:clamp(2rem,9.5vw,3.2rem);line-height:1.15;padding:.35rem .2rem}
   /* скрито/показано състояние — с ниска специфичност, за да го надделява .open и при .scrolled / .nav--solid */
   .nav__links a{opacity:0;transform:translateY(26px);transition:opacity .5s,transform .7s var(--ease),color .3s}
