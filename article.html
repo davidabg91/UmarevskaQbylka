@@ -28,10 +28,12 @@
   <link rel="stylesheet" href="styles.css?v=46" />
   <link rel="icon" type="image/png" href="img/favicon.png" />
   <link rel="apple-touch-icon" href="img/apple-touch-icon.png" />
-  <!-- Клас inner = истинско преминаване вътре в сайта: току-що (до 20 сек) е напусната друга негова страница —
-       с връзка или с „назад“. Тогава входът е завесата с логото, която се вдига нагоре. При влизане отвън,
-       презареждане, написан адрес или възстановен раздел входът остава през ябълката. -->
-  <script>(function(){try{var n=(performance.getEntriesByType('navigation')[0]||{}).type,s=sessionStorage,r=Date.now()-(+s.getItem('um_left')||0)<20000;addEventListener('pagehide',function(){try{s.setItem('um_left',Date.now())}catch(e){}});if(n!=='reload'&&r&&(n==='back_forward'||document.referrer.indexOf(location.origin+'/')===0))document.documentElement.classList.add('inner')}catch(e){}})()</script>
+  <!-- Клас inner = преминаване вътре в сайта → входът е завесата с логото, която се вдига нагоре (вместо ябълката).
+       • връзка от друга страница на сайта: познава се по адреса, от който идваме — не зависи от нищо друго;
+       • „назад/напред“: само ако до 20 сек преди това страница на сайта е била отворена в този раздел
+         (отбелязва се на всеки 2 сек), за да не се брои за преминаване раздел, възстановен след време.
+       При влизане отвън, презареждане или написан адрес входът остава през ябълката. -->
+  <script>(function(){try{var d=document,n=(performance.getEntriesByType('navigation')[0]||{}).type,s=sessionStorage,r=Date.now()-(+s.getItem('um_alive')||0)<20000,t=function(){try{s.setItem('um_alive',Date.now())}catch(e){}};if(n!=='reload'&&(n==='back_forward'?r:d.referrer.indexOf(location.origin+'/')===0))d.documentElement.classList.add('inner');t();setInterval(function(){if(d.visibilityState==='visible')t()},2000);addEventListener('pagehide',t)}catch(e){}})()</script>
 </head>
 <body class="article-page loading">
 
