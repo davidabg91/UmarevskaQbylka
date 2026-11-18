@@ -134,8 +134,11 @@ index = replaceOnce(index, /<!-- blog:start -->[\s\S]*?<!-- blog:end -->/,
   '<!-- blog:start -->' + articles.map(a => card(a, ' reveal')).join('') + '\n      <!-- blog:end -->', 'маркерите blog:start / blog:end в index.html');
 write('index.html', index);
 
-/* карта на сайта */
-const urls = [{ loc: SITE, lastmod: today, pr: '1.0' }].concat(articles.map(a => ({ loc: urlOf(a), lastmod: a.updated || a.date, pr: '0.7' })));
+/* карта на сайта — адресите на продуктите (produkt-*.html) ги вписва tools/build-products.js и тук се пазят */
+const productUrls = [];
+if (fs.existsSync(path.join(ROOT, 'sitemap.xml'))) read('sitemap.xml').replace(/<url><loc>([^<]+\/produkt-[^<\/]*\.html)<\/loc><lastmod>([^<]+)<\/lastmod><\/url>/g,
+  (m, loc, lastmod) => { productUrls.push({ loc, lastmod }); return m; });
+const urls = [{ loc: SITE, lastmod: today, pr: '1.0' }].concat(articles.map(a => ({ loc: urlOf(a), lastmod: a.updated || a.date, pr: '0.7' })), productUrls);
 write('sitemap.xml', '<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n'
   + urls.map(u => `  <url><loc>${u.loc}</loc><lastmod>${u.lastmod}</lastmod></url>`).join('\n') + '\n</urlset>\n');
 

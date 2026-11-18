@@ -337,7 +337,8 @@ const fmtNum = n => (Math.round((+n || 0) * 100) / 100).toString().replace('.', 
     const data = { '@context': 'https://schema.org', '@type': 'ItemList', name: 'Ябълки и ябълков сок от Умаревска Ябълка',
       itemListElement: products.map((p, i) => {
         const price = priceOf(p).toFixed(2);
-        const offer = { '@type': 'Offer', url: site + '#shop', priceCurrency: 'EUR', price: price, availability: 'https://schema.org/InStock',
+        const page = (window.umProductUrl && window.umProductUrl(p)) || site + '#shop';   /* собствената страница на продукта */
+        const offer = { '@type': 'Offer', url: page, priceCurrency: 'EUR', price: price, availability: 'https://schema.org/InStock',
           seller: { '@id': site + '#organization' } };
         if (p.sale_type === 'kg') offer.priceSpecification = { '@type': 'UnitPriceSpecification', price: price, priceCurrency: 'EUR',
           referenceQuantity: { '@type': 'QuantitativeValue', value: 1, unitCode: 'KGM' } };
