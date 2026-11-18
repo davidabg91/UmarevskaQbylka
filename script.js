@@ -57,8 +57,8 @@ const clamp01 = v => Math.min(1, Math.max(0, v));
   const preloader = document.getElementById('preloader');
   const heroVideo = document.querySelector('.hero__video');
   let loaded = false;
-  /* идваме от друга страница на сайта (класът се слага в <head>) → много бърз вход, без чакане */
-  const QUICK = root.classList.contains('quick');
+  /* идваме от друга страница на сайта (класът се слага в <head>) → вместо ябълката се вдига завесата с логото */
+  const INNER = root.classList.contains('inner');
 
   function removePreloader() {
     if (loaded) return;
@@ -69,15 +69,13 @@ const clamp01 = v => Math.min(1, Math.max(0, v));
       document.body.classList.remove('loading');
       setTimeout(() => {
         preloader.style.display = 'none';
-      }, QUICK ? (FX ? 480 : 180) : (FX ? 2150 : 500));
+      }, FX ? (INNER ? 1200 : 2150) : 500);
     }
-    /* входната анимация на hero тръгва, когато ябълката започне да „полита“ към зрителя */
-    setTimeout(() => root.classList.add('ready'), QUICK ? 120 : (FX ? 1050 : 100));
+    /* входната анимация на hero тръгва, когато ябълката започне да „полита“ към зрителя (или докато завесата се вдига) */
+    setTimeout(() => root.classList.add('ready'), FX ? (INNER ? 380 : 1050) : 100);
   }
 
-  if (QUICK) {
-    removePreloader();
-  } else if (heroVideo) {
+  if (heroVideo) {
     if (heroVideo.readyState >= 3) {
       setTimeout(removePreloader, 250);
     } else {

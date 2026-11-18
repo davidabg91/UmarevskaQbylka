@@ -877,12 +877,14 @@ html.fx .preloader.fade-out{opacity:1;visibility:visible;transition:none;animati
   55%{--iris:47vmin;animation-timing-function:cubic-bezier(.72,0,.86,.14)}
   100%{--iris:350vmax}
 }
-/* Преминаване между страниците на сайта (html.quick): без лого и чакане — ябълката се отваря веднага и бързо.
-   Влизането в сайта отвън остава с пълната анимация по-горе. */
-html.quick .preloader__content{display:none}
-html.quick .preloader.fade-out{transition:opacity .15s,visibility 0s .15s}
-html.quick.fx .preloader.fade-out{transition:none;animation:appleIrisQuick .45s cubic-bezier(.5,0,.85,.35) forwards}
-@keyframes appleIrisQuick{from{--iris:0px}to{--iris:350vmax}}
+/* Преминаване между страниците на сайта (html.inner): кремавата завеса с логото се вдига нагоре със заоблен долен ръб —
+   ефектът от обновяването на визията. Влизането в сайта отвън остава през ябълката по-горе. */
+html.inner .preloader__ring{display:none}
+html.inner.fx .preloader{overflow:hidden;transition:transform 1.1s var(--ease-io),border-radius 1.1s var(--ease-io),visibility 0s 1.1s}
+html.inner.fx .preloader.fade-out{opacity:1;animation:none;pointer-events:none;transform:translateY(-101%);border-radius:0 0 50% 50%/0 0 22% 22%;visibility:hidden;
+  transition:transform 1.1s var(--ease-io),border-radius 1.1s var(--ease-io),visibility 0s 1.1s}
+html.inner.fx .preloader__content{transition:opacity .45s,transform .7s var(--ease-io)}
+html.inner.fx .preloader.fade-out .preloader__content{opacity:0;transform:translateY(-60px)}
 .preloader__content{text-align:center;display:flex;flex-direction:column;align-items:center;gap:1.5rem;transition:opacity .3s,transform .5s var(--ease-io)}
 .preloader.fade-out .preloader__content{opacity:0;transform:scale(.55)}
 .preloader__apple,.preloader__logo{width:min(250px,62vw);height:auto;animation:applePulse 2s infinite ease-in-out}

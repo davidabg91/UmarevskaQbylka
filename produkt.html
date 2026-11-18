@@ -12,13 +12,14 @@
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Caveat:wght@500;700&family=Manrope:wght@400;500;600;700;800&family=Playfair+Display:ital,wght@0,500;0,600;0,700;0,800;1,500;1,600&display=swap" rel="stylesheet" />
-  <link rel="stylesheet" href="styles.css?v=45" />
+  <link rel="stylesheet" href="styles.css?v=46" />
   <link rel="stylesheet" href="product.css?v=1" />
   <link rel="icon" type="image/png" href="img/favicon.png" />
   <link rel="apple-touch-icon" href="img/apple-touch-icon.png" />
-  <!-- Преминаване от друга страница на сайта (или „назад“): класът quick прави входа много бърз — без логото и чакането.
-       При влизане в сайта отвън и при презареждане входната анимация остава както е. -->
-  <script>(function(){try{var n=(performance.getEntriesByType('navigation')[0]||{}).type;if(n==='back_forward'||(n!=='reload'&&document.referrer.indexOf(location.origin+'/')===0))document.documentElement.classList.add('quick')}catch(e){}})()</script>
+  <!-- Клас inner = истинско преминаване вътре в сайта: току-що (до 20 сек) е напусната друга негова страница —
+       с връзка или с „назад“. Тогава входът е завесата с логото, която се вдига нагоре. При влизане отвън,
+       презареждане, написан адрес или възстановен раздел входът остава през ябълката. -->
+  <script>(function(){try{var n=(performance.getEntriesByType('navigation')[0]||{}).type,s=sessionStorage,r=Date.now()-(+s.getItem('um_left')||0)<20000;addEventListener('pagehide',function(){try{s.setItem('um_left',Date.now())}catch(e){}});if(n!=='reload'&&r&&(n==='back_forward'||document.referrer.indexOf(location.origin+'/')===0))document.documentElement.classList.add('inner')}catch(e){}})()</script>
 </head>
 <body class="article-page loading">
 
@@ -172,7 +173,7 @@
   <script src="um-data.js?v=5"></script>
   <script src="um-track.js?v=3"></script>
   <script src="products-pages.js?v=407b828f"></script>
-  <script src="script.js?v=38"></script>
+  <script src="script.js?v=39"></script>
   <script src="um-products.js?v=1"></script>
 </body>
 </html>
