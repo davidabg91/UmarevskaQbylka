@@ -425,6 +425,10 @@ html.lb-open{overflow:hidden}
 .vw.active{background:#fff;color:var(--ct);border-color:var(--c);box-shadow:0 8px 16px -10px var(--c)}
 /* размер на плода (Едър / Среден) — избира се преди грамажа */
 .variety__sizes{display:flex;gap:.4rem;margin-bottom:.6rem}
+/* ръкописен надпис „Размери“, легнал върху пунктираната линия */
+.variety__order--sized{position:relative;padding-top:1.55rem}
+.variety__cap{position:absolute;top:0;left:50%;translate:-50% -56%;rotate:-2deg;padding:0 .75rem;background:var(--card);
+  font-family:var(--font-h);font-weight:700;font-size:1.6rem;line-height:1;color:var(--ct);white-space:nowrap;pointer-events:none}
 .vs{flex:1;min-width:0;display:flex;flex-direction:column;align-items:center;gap:.12rem;padding:.5rem .3rem .55rem;background:#fff;border:1.5px solid var(--line);
   border-radius:14px;color:var(--muted);cursor:pointer;line-height:1.2;transition:background-color .3s,color .3s,border-color .3s,box-shadow .3s}
 .vs b{font-size:.9rem;font-weight:800;color:var(--ink)}

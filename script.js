@@ -323,7 +323,7 @@ const fmtNum = n => (Math.round((+n || 0) * 100) / 100).toString().replace('.', 
       <h3>${esc(p.name)}</h3>
       <p>${esc(p.description || '')}</p>
       ${p.tag ? `<span class="variety__tag">${esc(p.tag)}</span>` : ''}
-      <div class="variety__order">${controls(p)}<div class="variety__buy">${priceHtml(p)}<button class="btn btn--primary btn--sm vadd">Поръчай</button></div></div>
+      <div class="variety__order${sizesOf(p).length ? ' variety__order--sized' : ''}">${sizesOf(p).length ? '<span class="variety__cap" aria-hidden="true">Размери</span>' : ''}${controls(p)}<div class="variety__buy">${priceHtml(p)}<button class="btn btn--primary btn--sm vadd">Поръчай</button></div></div>
     </article>`;
   }
   function planCard(pl) {
