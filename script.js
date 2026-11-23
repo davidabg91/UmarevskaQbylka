@@ -275,17 +275,24 @@ const fmtNum = n => (Math.round((+n || 0) * 100) / 100).toString().replace('.', 
   const ICONS = ['drop', 'shield', 'box', 'leaf', 'apple', 'sprout', 'clock', 'home'];
   const color = c => /^#[0-9a-f]{6}$/i.test(c || '') ? c : '#c1272d';
   const promoOf = p => (+p.promo_percent > 0 && (!p.promo_until || p.promo_until >= today)) ? +p.promo_percent : 0;
-  const priceOf = p => Math.round(p.price * (100 - promoOf(p))) / 100;
+  /* размери на плода (Едър / Среден …) — всеки със собствена цена за килограм */
+  const sizesOf = p => (p.sale_type === 'kg' && Array.isArray(p.sizes) ? p.sizes : []).filter(s => s && s.name && +s.price > 0)
+    .map(s => ({ name: String(s.name), range: String(s.range || ''), price: +s.price }));
+  const sizeLabel = s => s.name + (s.range ? ' (' + s.range + ')' : '');
+  const baseOf = (p, si) => { const s = sizesOf(p); return s.length ? s[Math.min(si || 0, s.length - 1)].price : +p.price; };
+  const priceOf = (p, si) => Math.round(baseOf(p, si) * (100 - promoOf(p))) / 100;
   const weightsOf = p => { const w = (Array.isArray(p.weights) ? p.weights : []).map(Number).filter(x => x > 0); return w.length ? w : [1]; };
   const byId = new Map();
 
   function controls(p) {
-    if (p.sale_type === 'kg') return `<div class="variety__weights">${weightsOf(p).map((kg, i) => `<button class="vw${i ? '' : ' active'}" data-kg="${kg}">${fmtNum(kg)} кг</button>`).join('')}</div>`;
+    const sizes = sizesOf(p);
+    const sizeBtns = sizes.length ? `<div class="variety__sizes" role="group" aria-label="Размер на плода">${sizes.map((s, i) => `<button class="vs${i ? '' : ' active'}" data-si="${i}"><b>${esc(s.name)}</b><small>${esc(s.range)}</small><small class="vs__p">${fmtNum(priceOf(p, i))} €/кг</small></button>`).join('')}</div>` : '';
+    if (p.sale_type === 'kg') return sizeBtns + `<div class="variety__weights">${weightsOf(p).map((kg, i) => `<button class="vw${i ? '' : ' active'}" data-kg="${kg}">${fmtNum(kg)} кг</button>`).join('')}</div>`;
     return `<div class="qty-select" data-qty><button data-act="dec" aria-label="По-малко">−</button><span><span class="qv">1</span> ${esc(p.unit_label || 'бр.')}</span><button data-act="inc" aria-label="Повече">+</button></div>`;
   }
   function priceHtml(p) {
     const first = p.sale_type === 'kg' ? weightsOf(p)[0] : 1, promo = promoOf(p);
-    return `<span class="variety__price">${promo ? `<s class="variety__old">${fmtNum(first * p.price)} €</s>` : ''}<span class="vp">${fmtNum(first * priceOf(p))}</span> €</span>`;
+    return `<span class="variety__price">${promo ? `<s class="variety__old">${fmtNum(first * baseOf(p))} €</s>` : ''}<span class="vp">${fmtNum(first * priceOf(p))}</span> €</span>`;
   }
   const promoBadge = p => promoOf(p) ? `<span class="variety__promo">${esc(p.promo_label || '−' + fmtNum(promoOf(p)) + '%')}</span>` : '';
 
@@ -338,11 +345,14 @@ const fmtNum = n => (Math.round((+n || 0) * 100) / 100).toString().replace('.', 
     const abs = u => /^https?:/i.test(u || '') ? u : site + String(u || 'img/apples.jpg').replace(/^\//, '');
     const data = { '@context': 'https://schema.org', '@type': 'ItemList', name: 'Ябълки и ябълков сок от Умаревска Ябълка',
       itemListElement: products.map((p, i) => {
-        const price = priceOf(p).toFixed(2);
+        const price = priceOf(p).toFixed(2), all = sizesOf(p).map((s, i) => priceOf(p, i));
         const page = (window.umProductUrl && window.umProductUrl(p)) || site + '#shop';   /* собствената страница на продукта */
-        const offer = { '@type': 'Offer', url: page, priceCurrency: 'EUR', price: price, availability: 'https://schema.org/InStock',
-          seller: { '@id': site + '#organization' } };
-        if (p.sale_type === 'kg') offer.priceSpecification = { '@type': 'UnitPriceSpecification', price: price, priceCurrency: 'EUR',
+        const offer = all.length > 1
+          ? { '@type': 'AggregateOffer', url: page, priceCurrency: 'EUR', lowPrice: Math.min(...all).toFixed(2), highPrice: Math.max(...all).toFixed(2),
+            offerCount: all.length, availability: 'https://schema.org/InStock', seller: { '@id': site + '#organization' } }
+          : { '@type': 'Offer', url: page, priceCurrency: 'EUR', price: price, availability: 'https://schema.org/InStock',
+            seller: { '@id': site + '#organization' } };
+        if (p.sale_type === 'kg' && all.length < 2) offer.priceSpecification = { '@type': 'UnitPriceSpecification', price: price, priceCurrency: 'EUR',
           referenceQuantity: { '@type': 'QuantitativeValue', value: 1, unitCode: 'KGM' } };
         const item = { '@type': 'Product', name: p.category === 'variety' ? 'Ябълки ' + p.name : p.name, image: abs(p.image_url),
           brand: { '@type': 'Brand', name: 'Умаревска Ябълка' }, offers: offer };
@@ -364,11 +374,18 @@ const fmtNum = n => (Math.round((+n || 0) * 100) / 100).toString().replace('.', 
     const cardEl = e.target.closest('.variety[data-pid]');
     if (!cardEl) return;
     const p = byId.get(cardEl.dataset.pid); if (!p) return;
-    const unit = priceOf(p), promo = promoOf(p);
+    const sz = e.target.closest('.vs');
+    if (sz) cardEl.querySelectorAll('.vs').forEach(b => b.classList.toggle('active', b === sz));
+    const sAct = cardEl.querySelector('.vs.active'), si = sAct ? +sAct.dataset.si : 0, size = sizesOf(p)[si];
+    const unit = priceOf(p, si), promo = promoOf(p);
     const setPrice = mult => {
       cardEl.querySelector('.vp').textContent = fmtNum(mult * unit);
-      const old = cardEl.querySelector('.variety__old'); if (old) old.textContent = fmtNum(mult * p.price) + ' €';
+      const old = cardEl.querySelector('.variety__old'); if (old) old.textContent = fmtNum(mult * baseOf(p, si)) + ' €';
     };
+    if (sz) {   /* друг размер → друга цена за килограм; избраният грамаж остава */
+      const wAct = cardEl.querySelector('.vw.active');
+      return setPrice(wAct ? +wAct.dataset.kg : weightsOf(p)[0]);
+    }
     const w = e.target.closest('.vw');
     if (w) {
       cardEl.querySelectorAll('.vw').forEach(b => b.classList.toggle('active', b === w));
@@ -384,8 +401,8 @@ const fmtNum = n => (Math.round((+n || 0) * 100) / 100).toString().replace('.', 
     if (!e.target.closest('.vadd')) return;
     if (p.sale_type === 'kg') {
       const act = cardEl.querySelector('.vw.active'), kg = act ? +act.dataset.kg : weightsOf(p)[0];
-      addToCart({ id: 'p-' + p.id + '-' + kg, type: 'apples', name: p.category === 'variety' ? 'Ябълки ' + p.name : p.name,
-        meta: fmtNum(kg) + ' кг · ' + fmtNum(unit) + ' €/кг' + (promo ? ' (−' + fmtNum(promo) + '%)' : ''), icon: '🍎', img: p.image_url || '',
+      addToCart({ id: 'p-' + p.id + '-' + kg + (size ? '-s' + si : ''), type: 'apples', name: p.category === 'variety' ? 'Ябълки ' + p.name : p.name,
+        meta: fmtNum(kg) + ' кг' + (size ? ', ' + sizeLabel(size) : '') + ' · ' + fmtNum(unit) + ' €/кг' + (promo ? ' (−' + fmtNum(promo) + '%)' : ''), icon: '🍎', img: p.image_url || '',
         unitPrice: Math.round(kg * unit * 100) / 100, qty: 1, kg: kg });
     } else {
       const n = Math.max(1, +cardEl.querySelector('.qv').textContent || 1);

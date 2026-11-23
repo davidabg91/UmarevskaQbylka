@@ -315,6 +315,11 @@ create table if not exists public.site_settings (
   key   text primary key check (char_length(key) <= 60),
   value jsonb not null
 );
+-- размери на плода за продуктите на килограм: [{"name":"Едър","range":"8,5+ см","price":2}, …]
+-- първият е избран по подразбиране и цената му е равна на products.price
+alter table public.products add column if not exists sizes jsonb not null default '[]'::jsonb;
+alter table public.products drop constraint if exists products_sizes_check;
+alter table public.products add constraint products_sizes_check check (jsonb_typeof(sizes) = 'array' and jsonb_array_length(sizes) <= 6);
 alter table public.products      enable row level security;
 alter table public.plans         enable row level security;
 alter table public.site_settings enable row level security;

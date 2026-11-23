@@ -24,7 +24,26 @@
   function color(c) { return /^#[0-9a-f]{6}$/i.test(c || '') ? c : '#c1272d'; }
   function today() { return new Date().toISOString().slice(0, 10); }
   function promoOf(p) { return (+p.promo_percent > 0 && (!p.promo_until || p.promo_until >= today())) ? +p.promo_percent : 0; }
-  function priceOf(p) { return Math.round(p.price * (100 - promoOf(p))) / 100; }
+  /* размери на плода (напр. Едър 8,5+ см / Среден 7,5–8,5 см) — всеки със собствена цена за килограм */
+  function sizesOf(p) {
+    if (p.sale_type !== 'kg' || !Array.isArray(p.sizes)) return [];
+    return p.sizes.filter(function (s) { return s && s.name && +s.price > 0; })
+      .map(function (s) { return { name: String(s.name), range: String(s.range || ''), price: +s.price }; });
+  }
+  function sizeLabel(s) { return s.name + (s.range ? ' (' + s.range + ')' : ''); }
+  /* цена без намаление / с намаление — за избрания размер (si), а без размери: цената на продукта */
+  function baseOf(p, si) { var s = sizesOf(p); return s.length ? s[Math.min(si || 0, s.length - 1)].price : +p.price; }
+  function priceOf(p, si) { return Math.round(baseOf(p, si) * (100 - promoOf(p))) / 100; }
+  function minPriceOf(p) { var s = sizesOf(p); return s.length ? Math.min.apply(null, s.map(function (x, i) { return priceOf(p, i); })) : priceOf(p); }
+  function fromOf(p) { return (sizesOf(p).length > 1 ? 'от ' : '') + fmt(minPriceOf(p)); }
+  function sizesHtml(p, si) {
+    var s = sizesOf(p);
+    if (!s.length) return '';
+    return '<div class="variety__sizes" role="group" aria-label="Размер на плода">' + s.map(function (x, i) {
+      return '<button class="vs' + (i === (si || 0) ? ' active' : '') + '" data-si="' + i + '"><b>' + esc(x.name) + '</b><small>' + esc(x.range) + '</small><small class="vs__p">'
+        + fmt(priceOf(p, i)) + ' €/кг</small></button>';
+    }).join('') + '</div>';
+  }
   function weightsOf(p) { var w = (Array.isArray(p.weights) ? p.weights : []).map(Number).filter(function (x) { return x > 0; }); return w.length ? w : [1]; }
   function nameOf(p) { return p.category === 'variety' ? 'Ябълки ' + p.name : p.name; }
   function descOf(p) { return clean(p.lead || p.description || ''); }
@@ -37,16 +56,19 @@
   }
 
   /* блокът за поръчка: грамаж или брой, цена, бутон */
-  function orderHtml(p) {
-    var promo = promoOf(p), unit = priceOf(p);
-    var first = p.sale_type === 'kg' ? weightsOf(p)[0] : 1;
+  function orderHtml(p, si, mult) {
+    si = si || 0;
+    var promo = promoOf(p), unit = priceOf(p, si), base = baseOf(p, si), sizes = sizesOf(p);
+    var first = mult || (p.sale_type === 'kg' ? weightsOf(p)[0] : 1);
     var controls = p.sale_type === 'kg'
-      ? '<div class="variety__weights">' + weightsOf(p).map(function (kg, i) { return '<button class="vw' + (i ? '' : ' active') + '" data-kg="' + kg + '">' + fmt(kg) + ' кг</button>'; }).join('') + '</div>'
-      : '<div class="qty-select" data-qty><button data-act="dec" aria-label="По-малко">−</button><span><span class="qv">1</span> ' + esc(p.unit_label || 'бр.') + '</span><button data-act="inc" aria-label="Повече">+</button></div>';
-    return '<p class="product__unit">' + (promo ? '<s>' + fmt(p.price) + ' €</s> ' : '') + '<strong>' + fmt(unit) + ' €</strong> / ' + esc(unitOf(p))
+      ? '<div class="variety__weights">' + weightsOf(p).map(function (kg) { return '<button class="vw' + (kg === first ? ' active' : '') + '" data-kg="' + kg + '">' + fmt(kg) + ' кг</button>'; }).join('') + '</div>'
+      : '<div class="qty-select" data-qty><button data-act="dec" aria-label="По-малко">−</button><span><span class="qv">' + first + '</span> ' + esc(p.unit_label || 'бр.') + '</span><button data-act="inc" aria-label="Повече">+</button></div>';
+    return '<p class="product__unit">' + (promo ? '<s>' + fmt(base) + ' €</s> ' : '') + '<strong>' + fmt(unit) + ' €</strong> / ' + esc(unitOf(p))
+      + (sizes.length ? ' · размер ' + esc(sizeLabel(sizes[Math.min(si, sizes.length - 1)])) : '')
       + (promo ? ' <span class="product__promo">' + esc(p.promo_label || '−' + fmt(promo) + '%') + '</span>' : '') + '</p>'
+      + (sizes.length ? '<span class="product__pick">Размер на плода</span>' + sizesHtml(p, si) + '<span class="product__pick">Количество</span>' : '')
       + controls
-      + '<div class="variety__buy"><span class="variety__price">' + (promo ? '<s class="variety__old">' + fmt(first * p.price) + ' €</s>' : '')
+      + '<div class="variety__buy"><span class="variety__price">' + (promo ? '<s class="variety__old">' + fmt(first * base) + ' €</s>' : '')
       + '<span class="vp">' + fmt(first * unit) + '</span> €</span><button class="btn btn--primary vadd">Поръчай <svg class="ico"><use href="#i-arrow"/></svg></button></div>';
   }
 
@@ -80,18 +102,29 @@
   function moreCard(p, url) {
     var d = descOf(p);
     return '<a class="post" href="' + esc(url) + '"><div class="post__cover"><img src="' + esc(imgOf(p)) + '" alt="' + esc(nameOf(p)) + '" loading="lazy" decoding="async"></div>'
-      + '<div class="post__body"><span class="post__cat">' + fmt(priceOf(p)) + ' € / ' + esc(unitOf(p)) + '</span><h3 class="post__title">' + esc(nameOf(p)) + '</h3>'
+      + '<div class="post__body"><span class="post__cat">' + fromOf(p) + ' € / ' + esc(unitOf(p)) + '</span><h3 class="post__title">' + esc(nameOf(p)) + '</h3>'
       + '<p class="post__excerpt">' + esc(d.length > 130 ? d.slice(0, 127).replace(/\s+\S*$/, '') + '…' : d) + '</p>'
       + '<span class="post__more">Към продукта <svg class="ico"><use href="#i-arrow"/></svg></span></div></a>';
   }
 
   /* структурирани данни за търсачките */
   function schema(p, url) {
-    var price = priceOf(p).toFixed(2), name = nameOf(p), desc = descOf(p);
-    var offer = { '@type': 'Offer', url: url, priceCurrency: 'EUR', price: price, availability: 'https://schema.org/InStock',
-      itemCondition: 'https://schema.org/NewCondition', seller: { '@type': 'Organization', '@id': SITE + '#organization', name: BRAND, url: SITE } };
-    if (p.sale_type === 'kg') offer.priceSpecification = { '@type': 'UnitPriceSpecification', price: price, priceCurrency: 'EUR',
-      referenceQuantity: { '@type': 'QuantitativeValue', value: 1, unitCode: 'KGM' } };
+    var name = nameOf(p), desc = descOf(p), sizes = sizesOf(p);
+    var one = function (si, label) {
+      var price = priceOf(p, si).toFixed(2);
+      var o = { '@type': 'Offer', url: url, priceCurrency: 'EUR', price: price, availability: 'https://schema.org/InStock',
+        itemCondition: 'https://schema.org/NewCondition', seller: { '@type': 'Organization', '@id': SITE + '#organization', name: BRAND, url: SITE } };
+      if (label) o.name = label;
+      if (p.sale_type === 'kg') o.priceSpecification = { '@type': 'UnitPriceSpecification', price: price, priceCurrency: 'EUR',
+        referenceQuantity: { '@type': 'QuantitativeValue', value: 1, unitCode: 'KGM' } };
+      return o;
+    };
+    var offer = one(0);
+    if (sizes.length > 1) {   /* по една оферта за всеки размер */
+      var all = sizes.map(function (s, i) { return priceOf(p, i); });
+      offer = { '@type': 'AggregateOffer', url: url, priceCurrency: 'EUR', lowPrice: Math.min.apply(null, all).toFixed(2), highPrice: Math.max.apply(null, all).toFixed(2),
+        offerCount: sizes.length, availability: 'https://schema.org/InStock', offers: sizes.map(function (s, i) { return one(i, name + ' — ' + sizeLabel(s)); }) };
+    }
     var product = { '@type': 'Product', '@id': url + '#product', name: name, image: [absUrl(p.image_url)], sku: String(p.id),
       category: CATS[p.category] || 'Магазин', brand: { '@type': 'Brand', name: BRAND }, offers: offer };
     if (desc) product.description = desc;
@@ -103,7 +136,8 @@
   }
 
   var API = { SITE: SITE, BRAND: BRAND, esc: esc, fmt: fmt, slugify: slugify, nameOf: nameOf, descOf: descOf, unitOf: unitOf, priceOf: priceOf,
-    promoOf: promoOf, absUrl: absUrl, mainHtml: mainHtml, moreCard: moreCard, schema: schema };
+    promoOf: promoOf, absUrl: absUrl, mainHtml: mainHtml, moreCard: moreCard, schema: schema,
+    sizesOf: sizesOf, sizeLabel: sizeLabel, baseOf: baseOf, minPriceOf: minPriceOf, fromOf: fromOf, sizesHtml: sizesHtml };
   if (typeof module !== 'undefined' && module.exports) { module.exports = API; return; }   /* генераторът спира тук */
 
   /* ============================ в браузъра ============================ */
@@ -159,11 +193,18 @@
   root.addEventListener('click', function (e) {
     var p = current, box = e.target.closest('#productOrder');
     if (!p || !box) return;
-    var unit = priceOf(p), promo = promoOf(p);
+    var sizes = sizesOf(p), sAct = box.querySelector('.vs.active'), si = sAct ? +sAct.dataset.si : 0;
+    var unit = priceOf(p, si), promo = promoOf(p);
     var setPrice = function (mult) {
       box.querySelector('.vp').textContent = fmt(mult * unit);
-      var old = box.querySelector('.variety__old'); if (old) old.textContent = fmt(mult * p.price) + ' €';
+      var old = box.querySelector('.variety__old'); if (old) old.textContent = fmt(mult * baseOf(p, si)) + ' €';
     };
+    var sz = e.target.closest('.vs');
+    if (sz) {   /* друг размер → друга цена за килограм; избраният грамаж се запазва */
+      var wAct = box.querySelector('.vw.active');
+      box.innerHTML = orderHtml(p, +sz.dataset.si, wAct ? +wAct.dataset.kg : 0);
+      return;
+    }
     var w = e.target.closest('.vw');
     if (w) {
       box.querySelectorAll('.vw').forEach(function (b) { b.classList.toggle('active', b === w); });
@@ -180,8 +221,9 @@
     /* същите записи в кошницата, каквито прави и магазинът в началната страница */
     if (p.sale_type === 'kg') {
       var act = box.querySelector('.vw.active'), kg = act ? +act.dataset.kg : (Array.isArray(p.weights) && +p.weights[0]) || 1;
-      addToCart({ id: 'p-' + p.id + '-' + kg, type: 'apples', name: nameOf(p),
-        meta: fmt(kg) + ' кг · ' + fmt(unit) + ' €/кг' + (promo ? ' (−' + fmt(promo) + '%)' : ''), icon: '🍎', img: p.image_url || '',
+      var size = sizes[si];
+      addToCart({ id: 'p-' + p.id + '-' + kg + (size ? '-s' + si : ''), type: 'apples', name: nameOf(p),
+        meta: fmt(kg) + ' кг' + (size ? ', ' + sizeLabel(size) : '') + ' · ' + fmt(unit) + ' €/кг' + (promo ? ' (−' + fmt(promo) + '%)' : ''), icon: '🍎', img: p.image_url || '',
         unitPrice: Math.round(kg * unit * 100) / 100, qty: 1, kg: kg });
     } else {
       var cnt = Math.max(1, +box.querySelector('.qv').textContent || 1);
@@ -221,7 +263,11 @@
         return;
       }
       bind(live);
-      if (box) box.innerHTML = orderHtml(live);
+      if (box) {   /* изборът, направен преди базата да отговори, се запазва */
+        var sNow = box.querySelector('.vs.active'), wNow = box.querySelector('.vw.active'), qNow = box.querySelector('.qv');
+        box.innerHTML = orderHtml(live, sNow ? Math.min(+sNow.dataset.si, Math.max(0, sizesOf(live).length - 1)) : 0,
+          wNow ? (weightsOf(live).indexOf(+wNow.dataset.kg) >= 0 ? +wNow.dataset.kg : 0) : (qNow ? +qNow.textContent || 0 : 0));
+      }
       setSchema(live, SITE + (fileById(live.id) || location.pathname.split('/').pop()));
     }).catch(function () {});   /* базата не отговаря → остават вградените данни */
     return;

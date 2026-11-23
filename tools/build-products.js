@@ -26,7 +26,7 @@ const write = (f, s) => fs.writeFileSync(path.join(ROOT, f), s);
 const exists = f => fs.existsSync(path.join(ROOT, f));
 const today = new Date().toISOString().slice(0, 10);
 const MANIFEST = 'products-pages.js';
-const VER = { css: 1, js: 1 };   /* вдигат се при промяна на product.css / um-products.js */
+const VER = { css: 2, js: 2 };   /* вдигат се при промяна на product.css / um-products.js */
 
 function replaceOnce(s, re, to, what) {
   if (!re.test(s)) throw new Error('Шаблонът не съдържа: ' + what);
@@ -115,7 +115,7 @@ const cut = (s, n) => s.length > n ? s.slice(0, n - 1).replace(/\s+\S*$/, '').re
   products.forEach((p, i) => {
     const name = P.nameOf(p), desc = P.descOf(p), url = urlOf(p), file = fileOf.get(p.id);
     const title = name + ' — от производител | ' + BRAND;
-    const priceLine = 'Цена ' + P.fmt(P.priceOf(p)) + ' € / ' + P.unitOf(p) + ', доставка с куриер в цяла България.';
+    const priceLine = 'Цена ' + P.fromOf(p) + ' € / ' + P.unitOf(p) + ', доставка с куриер в цяла България.';
     /* описание за търсачките: цели изречения от описанието, докато се побират, и цената накрая */
     const room = 158 - priceLine.length - (name + ' от производител. ').length;
     let lead = '';
@@ -139,7 +139,7 @@ const cut = (s, n) => s.length > n ? s.slice(0, n - 1).replace(/\s+\S*$/, '').re
   <meta property="og:title" content="${esc(title)}" />
   <meta property="og:description" content="${esc(meta)}" />
   <meta property="og:image" content="${esc(img)}" />
-  <meta property="product:price:amount" content="${P.priceOf(p).toFixed(2)}" />
+  <meta property="product:price:amount" content="${P.minPriceOf(p).toFixed(2)}" />
   <meta property="product:price:currency" content="EUR" />
   <meta name="twitter:card" content="summary_large_image" />
   <meta name="twitter:title" content="${esc(title)}" />

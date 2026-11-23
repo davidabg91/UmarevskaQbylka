@@ -496,8 +496,10 @@
   const todayKey = () => dayKey(new Date());
   const promoOn = p => +p.promo_percent > 0 && (!p.promo_until || p.promo_until >= todayKey());
   const priceNow = p => Math.round(p.price * (100 - (promoOn(p) ? +p.promo_percent : 0))) / 100;
+  const sizesOf = p => (p.sale_type === 'kg' && Array.isArray(p.sizes) ? p.sizes : []).filter(s => s && s.name && +s.price > 0);
+  const offNow = (p, v) => Math.round(v * (100 - (promoOn(p) ? +p.promo_percent : 0))) / 100;
   const priceLine = p => p.sale_type === 'kg'
-    ? money(priceNow(p)) + ' / кг · ' + ((p.weights || []).join(', ') || '—') + ' кг'
+    ? (sizesOf(p).length ? sizesOf(p).map(s => s.name + ' ' + money(offNow(p, +s.price))).join(' · ') : money(priceNow(p))) + ' / кг · ' + ((p.weights || []).join(', ') || '—') + ' кг'
     : money(priceNow(p)) + ' / ' + (p.unit_label || 'бр.');
   const lines = v => String(v || '').split('\n').map(x => x.trim()).filter(Boolean);
   const val = id => { const el = $('#' + id); return el ? el.value.trim() : ''; };
@@ -529,7 +531,7 @@
   }
   function productDrawer(id) {
     const p = id ? S.products.find(x => x.id === id) : null;
-    const d = p || { name: '', description: '', tag: '', color: '#c1272d', image_url: '', category: 'variety', sale_type: 'kg', price: 2, weights: [5, 10, 20],
+    const d = p || { name: '', description: '', tag: '', color: '#c1272d', image_url: '', category: 'variety', sale_type: 'kg', price: 2, weights: [5, 10, 20], sizes: [],
       unit_label: 'бр.', unit_kg: 1, featured: false, badge: '', lead: '', note: '', bullets: [], promo_percent: null, promo_label: '', promo_until: null, active: true,
       sort: (S.products.reduce((m, x) => Math.max(m, +x.sort || 0), 0) + 10) };
     openDrawer(`<div class="drawer__head"><div><h2>${p ? esc(p.name) : 'Нов продукт'}</h2><span class="note">${p ? 'промените се виждат на сайта веднага след запазване' : 'попълнете и запазете'}</span></div><button class="drawer__close" data-close-drawer aria-label="Затвори">✕</button></div>
@@ -546,7 +548,9 @@
         <label class="field">Продава се<select id="pSale"><option value="kg"${d.sale_type === 'kg' ? ' selected' : ''}>На килограм (с грамажи)</option><option value="unit"${d.sale_type === 'unit' ? ' selected' : ''}>На брой</option></select></label>
         <label class="field"><span id="pPriceLbl">Цена</span><input id="pPrice" inputmode="decimal" value="${esc(String(d.price).replace('.', ','))}" /></label>
       </div>
-      <div data-sale="kg"><label class="field">Грамажи за избор (кг, разделени със запетая)<input id="pWeights" value="${esc((d.weights || []).join(', '))}" placeholder="5, 10, 20" /></label></div>
+      <div data-sale="kg"><label class="field">Грамажи за избор (кг, разделени със запетая)<input id="pWeights" value="${esc((d.weights || []).join(', '))}" placeholder="5, 10, 20" /></label>
+        <label class="field">Размери на плода — по един на ред: Име | калибър | цена за 1 кг<textarea id="pSizes" placeholder="Едър | 8,5+ см | 2&#10;Среден | 7,5–8,5 см | 1,80">${esc((d.sizes || []).map(z => (z.name || '') + ' | ' + (z.range || '') + ' | ' + String(z.price == null ? '' : z.price).replace('.', ',')).join('\n'))}</textarea></label>
+        <p class="note">Клиентът избира размера в обявата; първият ред е избран по подразбиране и неговата цена е основната. Оставете празно, ако продуктът е с една цена.</p></div>
       <div data-sale="unit" class="fields2">
         <label class="field">Мерна единица<input id="pUnit" maxlength="20" value="${esc(d.unit_label || 'бр.')}" placeholder="бр." /></label>
         <label class="field">Тегло на 1 бр. в кг (за доставката)<input id="pUnitKg" inputmode="decimal" value="${esc(String(d.unit_kg == null ? 1 : d.unit_kg).replace('.', ','))}" /></label>
@@ -580,11 +584,25 @@
         ${p ? `<button class="btn btn--danger btn--sm" data-pdel="${esc(p.id)}">Изтрий</button>` : ''}</div>`);
     syncProductForm();
   }
+  /* редовете „Име | калибър | цена“ от полето за размери */
+  function readSizes() {
+    const out = { list: [], bad: '' };
+    lines($('#pSizes') ? $('#pSizes').value : '').forEach(l => {
+      const c = l.split('|').map(x => x.trim());
+      const price = numOr(c.length > 2 ? c[2] : c[1], 0);
+      if (!c[0] || !(price > 0) || price >= 10000) { if (!out.bad) out.bad = l; return; }
+      out.list.push({ name: c[0].slice(0, 30), range: c.length > 2 ? c[1].slice(0, 30) : '', price: Math.round(price * 100) / 100 });
+    });
+    return out;
+  }
   function syncProductForm() {
     if (!$('#pSale')) return;
     const kg = $('#pSale').value === 'kg';
     $$('[data-sale]').forEach(el => { el.hidden = el.dataset.sale !== (kg ? 'kg' : 'unit'); });
-    $('#pPriceLbl').textContent = kg ? 'Цена за 1 кг (€)' : 'Цена за 1 бр. (€)';
+    const sized = kg && readSizes().list.length > 0;   /* при размери цената идва от първия ред */
+    $('#pPriceLbl').textContent = sized ? 'Цена за 1 кг (€) — от първия размер' : kg ? 'Цена за 1 кг (€)' : 'Цена за 1 бр. (€)';
+    $('#pPrice').disabled = sized;
+    if (sized) $('#pPrice').value = String(readSizes().list[0].price).replace('.', ',');
     $$('[data-feat]').forEach(el => { el.hidden = !checked('pFeat'); });
     const price = numOr(val('pPrice'), 0), pr = numOr(val('pPromo'), 0);
     $('#pPromoNote').textContent = pr > 0 ? 'Цена с намалението: ' + money(Math.round(price * (100 - pr)) / 100) + (kg ? ' / кг' : '') + ' вместо ' + money(price) : 'Без промоция.';
@@ -616,9 +634,12 @@
     const kg = val('pSale') === 'kg';
     const weights = val('pWeights').split(/[,;\s]+/).map(x => numOr(x, 0)).filter(x => x > 0);
     const promo = numOr(val('pPromo'), 0);
+    const sz = kg ? readSizes() : { list: [], bad: '' };
+    if (sz.bad) return show('Размерът „' + sz.bad + '“ не е разбран. Пишете го така: Среден | 7,5–8,5 см | 1,80');
+    if (sz.list.length > 6) return show('Най-много 6 размера.');
     const row = {
       name: val('pName'), description: val('pDesc') || null, tag: val('pTag') || null, category: val('pCat'), sale_type: kg ? 'kg' : 'unit',
-      price: numOr(val('pPrice'), -1), weights: kg ? weights : [], unit_label: val('pUnit') || 'бр.', unit_kg: numOr(val('pUnitKg'), 1),
+      price: sz.list.length ? sz.list[0].price : numOr(val('pPrice'), -1), weights: kg ? weights : [], sizes: sz.list, unit_label: val('pUnit') || 'бр.', unit_kg: numOr(val('pUnitKg'), 1),
       promo_percent: promo > 0 ? promo : null, promo_label: val('pPromoLabel') || null, promo_until: val('pPromoUntil') || null,
       featured: checked('pFeat'), badge: val('pBadge') || null, note: val('pNote') || null, lead: val('pLead') || null,
       bullets: lines($('#pBullets').value).map((l, i) => { const k = l.indexOf('|'); return { icon: ['drop', 'shield', 'box'][i % 3], title: (k < 0 ? l : l.slice(0, k)).trim(), text: k < 0 ? '' : l.slice(k + 1).trim() }; }),
@@ -703,7 +724,7 @@
       if (f && prev) prev.src = URL.createObjectURL(f);
     }
   });
-  document.addEventListener('input', e => { if (e.target.id === 'pPrice' || e.target.id === 'pPromo') syncProductForm(); });
+  document.addEventListener('input', e => { if (e.target.id === 'pPrice' || e.target.id === 'pPromo' || e.target.id === 'pSizes') syncProductForm(); });
 
   /* ====================================================================== чекмедже */
   const drawer = $('#drawer'), panel = $('#drawerPanel');
