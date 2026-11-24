@@ -6,6 +6,7 @@
    и прави:
      produkt-<име>.html   — по една страница за всеки продукт (от рамката на article.html)
      produkt.html         — резервна страница за продукт, добавен след последното генериране
+     img/p/*              — копие на снимките от базата, смалени (прави го tools/build-images.py)
      products-pages.js    — списък „продукт → страница“, по който картите в магазина намират адреса
      sitemap.xml          — добавя адресите на продуктите
 
@@ -17,6 +18,7 @@ const fs = require('fs');
 const path = require('path');
 const vm = require('vm');
 const crypto = require('crypto');
+const { spawnSync } = require('child_process');
 
 const ROOT = path.join(__dirname, '..');
 const P = require(path.join(ROOT, 'um-products.js'));
@@ -26,7 +28,7 @@ const write = (f, s) => fs.writeFileSync(path.join(ROOT, f), s);
 const exists = f => fs.existsSync(path.join(ROOT, f));
 const today = new Date().toISOString().slice(0, 10);
 const MANIFEST = 'products-pages.js';
-const VER = { css: 3, js: 3 };   /* вдигат се при промяна на product.css / um-products.js */
+const VER = { css: 3, js: 4 };   /* вдигат се при промяна на product.css / um-products.js */
 
 function replaceOnce(s, re, to, what) {
   if (!re.test(s)) throw new Error('Шаблонът не съдържа: ' + what);
@@ -57,7 +59,19 @@ async function loadProducts() {
 }
 const cut = (s, n) => s.length > n ? s.slice(0, n - 1).replace(/\s+\S*$/, '').replace(/[\s,;:—-]+$/, '') + '…' : s;
 
+/* копие на снимките от базата в img/p/ (смалени) — сайтът ги зарежда оттам, а не от базата */
+function mirrorImages() {
+  const script = path.join(__dirname, 'build-images.py');
+  const ok = ['python', 'py'].some(cmd => {
+    const r = spawnSync(cmd, ['-I', script], { stdio: 'inherit' });
+    return !r.error && r.status === 0;
+  });
+  if (!ok) console.warn('Внимание: снимките не бяха копирани в img/p/ (трябват Python и Pillow). Страниците ще ги взимат от базата.');
+}
+
 (async () => {
+  mirrorImages();
+  P.setFileCheck(exists);
   const products = await loadProducts();
   const before = loadManifest();
 
@@ -122,7 +136,7 @@ const cut = (s, n) => s.length > n ? s.slice(0, n - 1).replace(/\s+\S*$/, '').re
     (desc.match(/[^.!?…]+[.!?…]+|[^.!?…]+$/g) || []).some(s => { s = s.trim(); if ((lead + ' ' + s).trim().length > room) return true; lead = (lead + ' ' + s).trim(); return false; });
     if (!lead && desc) lead = cut(desc, room);
     const meta = name + ' от производител. ' + (lead ? lead + (/[.!?…]$/.test(lead) ? ' ' : '. ') : '') + priceLine;
-    const img = P.absUrl(p.image_url);
+    const img = P.shareImg(p);
     const json = JSON.stringify(p).replace(/</g, '\\u003c');
     lastmod[url] = (embedded(file) === json && mapOld[url]) || today;
 

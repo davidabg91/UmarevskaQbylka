@@ -264,6 +264,20 @@ document.querySelectorAll('.variety__order').forEach(function(block){
    Страницата тръгва с вградените в HTML продукти; щом базата отговори, те се заменят с актуалните.
    Ако базата не отговори, остава вграденото съдържание и магазинът продължава да работи. */
 const fmtNum = n => (Math.round((+n || 0) * 100) / 100).toString().replace('.', ',');
+
+/* Снимките от панела стоят в хранилището на базата, но сайтът зарежда копието им от img/p/
+   (tools/build-images.py) — иначе всяко посещение харчи от месечния трафик на базата.
+   Снимка, качена след последното генериране, още няма копие: тогава се взима оригиналът от базата. */
+const IMG_MIRROR = /\/storage\/v1\/object\/public\/[\w-]+\/([\w.-]+)\.(?:jpe?g|png|webp)$/i;
+const localImg = (u, ext) => { const m = IMG_MIRROR.exec(u || ''); return m ? 'img/p/' + m[1] + '.' + (ext || 'webp') : ''; };
+const imgSrc = u => localImg(u) || u || 'img/apples.jpg';
+const imgFb = u => localImg(u) ? ' data-fb="' + String(u).replace(/&/g, '&amp;').replace(/"/g, '&quot;') + '"' : '';
+(function () {
+  const swap = el => { const u = el.dataset.fb; el.removeAttribute('data-fb'); el.src = u; };
+  document.addEventListener('error', e => { const el = e.target; if (el && el.tagName === 'IMG' && el.dataset.fb) swap(el); }, true);
+  document.querySelectorAll('img[data-fb]').forEach(el => { if (el.complete && !el.naturalWidth) swap(el); });   /* грешка отпреди скрипта */
+})();
+
 (function () {
   const D = window.UMData;
   if (!D || !D.publicSelect || D.mode === 'off') return;
@@ -315,7 +329,7 @@ const fmtNum = n => (Math.round((+n || 0) * 100) / 100).toString().replace('.', 
       return `<article class="variety variety--featured reveal" style="--c:${color(p.color)}" data-category="${esc(p.category)}" data-pid="${esc(p.id)}">
         <div class="variety__top variety__top--juice">
           <span class="juice__blob" aria-hidden="true"></span>
-          <figure class="juice__photo"><img src="${esc(p.image_url || 'img/apples.jpg')}" alt="${esc(p.name)}" loading="lazy" /></figure>
+          <figure class="juice__photo"><img src="${esc(imgSrc(p.image_url))}"${imgFb(p.image_url)} alt="${esc(p.name)}" loading="lazy" /></figure>
           ${p.note ? `<span class="juice__note" aria-hidden="true">${esc(p.note)}</span>` : ''}
           ${promoBadge(p)}
         </div>
@@ -332,7 +346,7 @@ const fmtNum = n => (Math.round((+n || 0) * 100) / 100).toString().replace('.', 
       </article>`;
     }
     return `<article class="variety reveal" style="--c:${color(p.color)}" data-category="${esc(p.category)}" data-pid="${esc(p.id)}" data-tilt>
-      <div class="variety__top"><img src="${esc(p.image_url || 'img/apples.jpg')}" alt="${esc(p.name)}" loading="lazy" /></div>
+      <div class="variety__top"><img src="${esc(imgSrc(p.image_url))}"${imgFb(p.image_url)} alt="${esc(p.name)}" loading="lazy" /></div>
       ${promoBadge(p)}
       <h3>${esc(p.name)}</h3>
       <p>${esc(p.description || '')}</p>
@@ -345,7 +359,7 @@ const fmtNum = n => (Math.round((+n || 0) * 100) / 100).toString().replace('.', 
     const perks = Array.isArray(pl.perks) ? pl.perks : [];
     return `<article class="sub__card${pl.hot ? ' sub__card--hot' : ''} reveal" data-spot>
       ${pl.badge ? `<div class="sub__badge">${esc(pl.badge)}</div>` : ''}
-      <div class="sub__card-top"><span class="sub__tier${pl.hot ? ' sub__tier--hot' : ''}">${esc(pl.tier)}</span><div class="sub__icon"><img src="${esc(pl.image_url || 'img/apples.jpg')}" alt="" loading="lazy"></div></div>
+      <div class="sub__card-top"><span class="sub__tier${pl.hot ? ' sub__tier--hot' : ''}">${esc(pl.tier)}</span><div class="sub__icon"><img src="${esc(imgSrc(pl.image_url))}"${imgFb(pl.image_url)} alt="" loading="lazy"></div></div>
       <h3>${esc(pl.title)}</h3>
       <p>${esc(pl.description || '')}</p>
       <ul class="sub__perks">${perks.map(x => `<li>${esc(x)}</li>`).join('')}</ul>
@@ -369,7 +383,7 @@ const fmtNum = n => (Math.round((+n || 0) * 100) / 100).toString().replace('.', 
             seller: { '@id': site + '#organization' } };
         if (p.sale_type === 'kg' && all.length < 2) offer.priceSpecification = { '@type': 'UnitPriceSpecification', price: price, priceCurrency: 'EUR',
           referenceQuantity: { '@type': 'QuantitativeValue', value: 1, unitCode: 'KGM' } };
-        const item = { '@type': 'Product', name: p.category === 'variety' ? 'Ябълки ' + p.name : p.name, image: abs(p.image_url),
+        const item = { '@type': 'Product', name: p.category === 'variety' ? 'Ябълки ' + p.name : p.name, image: abs(localImg(p.image_url, 'jpg') || p.image_url),
           brand: { '@type': 'Brand', name: 'Умаревска Ябълка' }, offers: offer };
         if (p.description || p.lead) item.description = p.description || p.lead;
         return { '@type': 'ListItem', position: i + 1, item: item };
@@ -517,7 +531,7 @@ function renderCart() {
 
   cartItemsEl.innerHTML = cart.map(i => `
     <div class="cart-item">
-      <div class="cart-item__ico">${i.img ? `<img src="${i.img}" alt="">` : i.icon}</div>
+      <div class="cart-item__ico">${i.img ? `<img src="${imgSrc(i.img)}"${imgFb(i.img)} alt="">` : i.icon}</div>
       <div class="cart-item__main">
         <div class="cart-item__name">${i.name}</div>
         <div class="cart-item__meta">${i.meta}</div>

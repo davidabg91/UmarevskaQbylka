@@ -48,7 +48,16 @@
   function nameOf(p) { return p.category === 'variety' ? 'Ябълки ' + p.name : p.name; }
   function descOf(p) { return clean(p.lead || p.description || ''); }
   function unitOf(p) { return p.sale_type === 'kg' ? 'кг' : (p.unit_label || 'бр.'); }
-  function imgOf(p) { return p.image_url || 'img/apples.jpg'; }
+  /* Снимките от панела стоят в хранилището на базата, но сайтът зарежда копието им от img/p/
+     (tools/build-images.py) — иначе всяко посещение харчи от месечния трафик на базата.
+     Снимка, качена след последното генериране, още няма копие: тогава <img data-fb> я взима от базата (script.js). */
+  var MIRROR = /\/storage\/v1\/object\/public\/[\w-]+\/([\w.-]+)\.(?:jpe?g|png|webp)$/i;
+  var hasFile = null;   /* генераторът проверява дали копието наистина е на диска */
+  function localImg(u, ext) { var m = MIRROR.exec(u || ''); return m ? 'img/p/' + m[1] + '.' + (ext || 'webp') : ''; }
+  function imgOf(p) { return localImg(p.image_url) || p.image_url || 'img/apples.jpg'; }
+  function fbAttr(p) { return localImg(p.image_url) ? ' data-fb="' + esc(p.image_url) + '"' : ''; }
+  /* снимката за споделяне и за търсачките — JPEG копието, с пълен адрес */
+  function shareImg(p) { var l = localImg(p.image_url, 'jpg'); return l && (!hasFile || hasFile(l)) ? SITE + l : absUrl(p.image_url); }
   /* задължителна информация за храната — трябва да се вижда преди поръчката:
      произход, клас и сортове (ябълки); нетно количество, цена за литър, съхранение и хранителна стойност (сок, оцет) */
   function volOf(p) { var v = +p.volume_l; return p.sale_type !== 'kg' && v > 0 ? v : 0; }
@@ -104,7 +113,7 @@
     var extra = p.lead && p.description && clean(p.description) !== desc ? clean(p.description) : '';
     return '<nav class="product__crumbs" aria-label="Път до страницата"><a href="./">Начало</a><span aria-hidden="true">›</span><a href="./#shop">Магазин</a><span aria-hidden="true">›</span><span>' + esc(name) + '</span></nav>'
       + '<div class="product__grid" style="--c:' + color(p.color) + '">'
-      + '<div class="product__media"><img src="' + esc(imgOf(p)) + '" alt="' + esc(name) + ' — ' + BRAND + '" fetchpriority="high" />'
+      + '<div class="product__media"><img src="' + esc(imgOf(p)) + '"' + fbAttr(p) + ' alt="' + esc(name) + ' — ' + BRAND + '" fetchpriority="high" />'
       + (p.note ? '<span class="product__note" aria-hidden="true">' + esc(p.note) + '</span>' : '') + '</div>'
       + '<div class="product__info">'
       + '<span class="post__cat">' + esc(p.badge || CATS[p.category] || 'Магазин') + '</span>'
@@ -129,7 +138,7 @@
   /* карта „друг продукт“ под основния */
   function moreCard(p, url) {
     var d = descOf(p);
-    return '<a class="post" href="' + esc(url) + '"><div class="post__cover"><img src="' + esc(imgOf(p)) + '" alt="' + esc(nameOf(p)) + '" loading="lazy" decoding="async"></div>'
+    return '<a class="post" href="' + esc(url) + '"><div class="post__cover"><img src="' + esc(imgOf(p)) + '"' + fbAttr(p) + ' alt="' + esc(nameOf(p)) + '" loading="lazy" decoding="async"></div>'
       + '<div class="post__body"><span class="post__cat">' + fromOf(p) + ' € / ' + esc(unitOf(p)) + '</span><h3 class="post__title">' + esc(nameOf(p)) + '</h3>'
       + '<p class="post__excerpt">' + esc(d.length > 130 ? d.slice(0, 127).replace(/\s+\S*$/, '') + '…' : d) + '</p>'
       + '<span class="post__more">Към продукта <svg class="ico"><use href="#i-arrow"/></svg></span></div></a>';
@@ -153,7 +162,7 @@
       offer = { '@type': 'AggregateOffer', url: url, priceCurrency: 'EUR', lowPrice: Math.min.apply(null, all).toFixed(2), highPrice: Math.max.apply(null, all).toFixed(2),
         offerCount: sizes.length, availability: 'https://schema.org/InStock', offers: sizes.map(function (s, i) { return one(i, name + ' — ' + sizeLabel(s)); }) };
     }
-    var product = { '@type': 'Product', '@id': url + '#product', name: name, image: [absUrl(p.image_url)], sku: String(p.id),
+    var product = { '@type': 'Product', '@id': url + '#product', name: name, image: [shareImg(p)], sku: String(p.id),
       category: CATS[p.category] || 'Магазин', brand: { '@type': 'Brand', name: BRAND }, offers: offer };
     if (desc) product.description = desc;
     if (p.origin) product.countryOfOrigin = { '@type': 'Country', name: p.origin };
@@ -165,7 +174,7 @@
   }
 
   var API = { SITE: SITE, BRAND: BRAND, esc: esc, fmt: fmt, slugify: slugify, nameOf: nameOf, descOf: descOf, unitOf: unitOf, priceOf: priceOf,
-    promoOf: promoOf, absUrl: absUrl, mainHtml: mainHtml, moreCard: moreCard, schema: schema,
+    promoOf: promoOf, absUrl: absUrl, shareImg: shareImg, setFileCheck: function (f) { hasFile = f; }, mainHtml: mainHtml, moreCard: moreCard, schema: schema,
     sizesOf: sizesOf, sizeLabel: sizeLabel, baseOf: baseOf, minPriceOf: minPriceOf, fromOf: fromOf, sizesHtml: sizesHtml };
   if (typeof module !== 'undefined' && module.exports) { module.exports = API; return; }   /* генераторът спира тук */
 
