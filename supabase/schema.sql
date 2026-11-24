@@ -320,6 +320,17 @@ create table if not exists public.site_settings (
 alter table public.products add column if not exists sizes jsonb not null default '[]'::jsonb;
 alter table public.products drop constraint if exists products_sizes_check;
 alter table public.products add constraint products_sizes_check check (jsonb_typeof(sizes) = 'array' and jsonb_array_length(sizes) <= 6);
+-- задължителна информация за храните, която се показва преди поръчката:
+-- произход, клас на качество и сортове в микса (ябълки); нетно количество в литри (от него се смята цената за литър),
+-- условия на съхранение и хранителна стойност [{"label":"Въглехидрати","value":"11 g"}, …] (сок, оцет)
+alter table public.products add column if not exists origin        text check (char_length(origin) <= 60);
+alter table public.products add column if not exists quality_class text check (char_length(quality_class) <= 30);
+alter table public.products add column if not exists varieties     text check (char_length(varieties) <= 200);
+alter table public.products add column if not exists volume_l      numeric(7,3) check (volume_l > 0 and volume_l < 1000);
+alter table public.products add column if not exists storage       text check (char_length(storage) <= 600);
+alter table public.products add column if not exists nutrition     jsonb not null default '[]'::jsonb;
+alter table public.products drop constraint if exists products_nutrition_check;
+alter table public.products add constraint products_nutrition_check check (jsonb_typeof(nutrition) = 'array' and jsonb_array_length(nutrition) <= 14);
 alter table public.products      enable row level security;
 alter table public.plans         enable row level security;
 alter table public.site_settings enable row level security;

@@ -26,7 +26,7 @@ const write = (f, s) => fs.writeFileSync(path.join(ROOT, f), s);
 const exists = f => fs.existsSync(path.join(ROOT, f));
 const today = new Date().toISOString().slice(0, 10);
 const MANIFEST = 'products-pages.js';
-const VER = { css: 2, js: 2 };   /* вдигат се при промяна на product.css / um-products.js */
+const VER = { css: 3, js: 3 };   /* вдигат се при промяна на product.css / um-products.js */
 
 function replaceOnce(s, re, to, what) {
   if (!re.test(s)) throw new Error('Шаблонът не съдържа: ' + what);

@@ -415,6 +415,10 @@ html.lb-open{overflow:hidden}
 .variety>h3,.variety>p,.variety>.variety__order{margin-inline:.85rem}
 .variety h3{font-size:1.55rem;margin-bottom:.55rem}
 .variety p{color:var(--muted);font-size:.97rem;margin-bottom:1.2rem}
+/* произход, клас, количество и цена за литър — задължителната информация, още в картата */
+.variety p.variety__legal{margin-top:-.55rem;font-size:.8rem;font-weight:700;line-height:1.55;color:color-mix(in srgb,var(--ink) 78%,#fff)}
+.variety__content p.variety__legal{margin-top:-.7rem;margin-bottom:1.5rem}
+.variety__legal a{color:var(--green);text-decoration:underline;text-underline-offset:3px;white-space:nowrap}
 .variety__tag{position:absolute;top:1.45rem;left:1.45rem;z-index:1;font-size:.74rem;font-weight:800;letter-spacing:.02em;color:var(--ct);
   background:rgba(255,253,249,.94);padding:.42rem .85rem;border-radius:999px;box-shadow:0 6px 16px -8px rgba(0,0,0,.4)}
 .variety__order{margin-top:auto;padding-top:1.2rem;border-top:1px dashed var(--line)}

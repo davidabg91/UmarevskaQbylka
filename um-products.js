@@ -49,6 +49,31 @@
   function descOf(p) { return clean(p.lead || p.description || ''); }
   function unitOf(p) { return p.sale_type === 'kg' ? 'кг' : (p.unit_label || 'бр.'); }
   function imgOf(p) { return p.image_url || 'img/apples.jpg'; }
+  /* задължителна информация за храната — трябва да се вижда преди поръчката:
+     произход, клас и сортове (ябълки); нетно количество, цена за литър, съхранение и хранителна стойност (сок, оцет) */
+  function volOf(p) { var v = +p.volume_l; return p.sale_type !== 'kg' && v > 0 ? v : 0; }
+  function volLabel(v) { return v < 1 ? fmt(v * 1000) + ' мл' : fmt(v) + ' л'; }
+  function perLitre(p) { var v = volOf(p); return v ? fmt(priceOf(p) / v) + ' €/л' : ''; }
+  function nutritionOf(p) { return (Array.isArray(p.nutrition) ? p.nutrition : []).filter(function (r) { return r && r.label && r.value; }); }
+  function specsHtml(p) {
+    var r = [];
+    if (p.origin) r.push(['Произход', p.origin]);
+    if (p.sale_type === 'kg' && p.quality_class) r.push(['Клас на качество', p.quality_class]);
+    if (p.varieties) r.push(['Сортове в микса', p.varieties]);
+    if (volOf(p)) r.push(['Нетно количество', volLabel(volOf(p))]);
+    if (!r.length) return '';
+    return '<dl class="product__specs">' + r.map(function (x) { return '<div><dt>' + x[0] + '</dt><dd>' + esc(x[1]) + '</dd></div>'; }).join('') + '</dl>';
+  }
+  function keepHtml(p) {
+    var n = nutritionOf(p), per = volOf(p) ? '100 мл' : '100 г';
+    if (!p.storage && !n.length) return '';
+    return '<div class="product__keep" id="info">'
+      + (p.storage ? '<h2>Съхранение</h2><p>' + esc(p.storage) + '</p>' : '')
+      + (n.length ? '<table class="product__nutri"><caption>Хранителна стойност на ' + per + ' <small>средни стойности</small></caption><tbody>' + n.map(function (x) {
+        return '<tr' + (/^от които/i.test(x.label) ? ' class="sub"' : '') + '><th scope="row">' + esc(x.label) + '</th><td>' + esc(x.value) + '</td></tr>';
+      }).join('') + '</tbody></table>' : '')
+      + '</div>';
+  }
   function absUrl(u) { return /^https?:/i.test(u || '') ? u : SITE + String(u || 'img/apples.jpg').replace(/^\//, ''); }
   function slugify(s) {
     return String(s || '').toLowerCase().split('').map(function (ch) { return TR[ch] != null ? TR[ch] : ch; }).join('')
@@ -65,6 +90,7 @@
       : '<div class="qty-select" data-qty><button data-act="dec" aria-label="По-малко">−</button><span><span class="qv">' + first + '</span> ' + esc(p.unit_label || 'бр.') + '</span><button data-act="inc" aria-label="Повече">+</button></div>';
     return '<p class="product__unit">' + (promo ? '<s>' + fmt(base) + ' €</s> ' : '') + '<strong>' + fmt(unit) + ' €</strong> / ' + esc(unitOf(p))
       + (sizes.length ? ' · размер ' + esc(sizeLabel(sizes[Math.min(si, sizes.length - 1)])) : '')
+      + (volOf(p) ? ' · ' + volLabel(volOf(p)) + ' · ' + perLitre(p) : '')
       + (promo ? ' <span class="product__promo">' + esc(p.promo_label || '−' + fmt(promo) + '%') + '</span>' : '') + '</p>'
       + (sizes.length ? '<span class="product__pick">Размер на плода</span>' + sizesHtml(p, si) + '<span class="product__pick">Количество</span>' : '')
       + controls
@@ -89,7 +115,9 @@
       + (bullets.length ? '<div class="variety__bullets">' + bullets.map(function (b, i) {
         return '<div class="bullet-item"><span class="bullet-icon"><svg class="ico"><use href="#i-' + (ICONS.indexOf(b.icon) >= 0 ? b.icon : ICONS[i % 3]) + '"/></svg></span><div class="bullet-text"><strong>' + esc(b.title) + '</strong><p>' + esc(b.text) + '</p></div></div>';
       }).join('') + '</div>' : '')
+      + specsHtml(p)
       + '<div class="product__order" id="productOrder">' + orderHtml(p) + '</div>'
+      + keepHtml(p)
       + '<ul class="product__facts">'
       + '<li><svg class="ico"><use href="#i-sprout"/></svg><span>Директно от производител — семейно стопанство в с. Умаревци, Ловешко.</span></li>'
       + '<li><svg class="ico"><use href="#i-box"/></svg><span>Доставка с Еконт, Спиди или Pigeon Express — до офис, автомат или адрес в цяла България.</span></li>'
@@ -128,6 +156,7 @@
     var product = { '@type': 'Product', '@id': url + '#product', name: name, image: [absUrl(p.image_url)], sku: String(p.id),
       category: CATS[p.category] || 'Магазин', brand: { '@type': 'Brand', name: BRAND }, offers: offer };
     if (desc) product.description = desc;
+    if (p.origin) product.countryOfOrigin = { '@type': 'Country', name: p.origin };
     return { '@context': 'https://schema.org', '@graph': [product,
       { '@type': 'BreadcrumbList', itemListElement: [
         { '@type': 'ListItem', position: 1, name: 'Начало', item: SITE },
@@ -164,6 +193,7 @@
         var a = h.querySelector('a');
         if (!a) { a = document.createElement('a'); while (h.firstChild) a.appendChild(h.firstChild); h.appendChild(a); }
         a.href = url;
+        card.querySelectorAll('a[data-plink]').forEach(function (l) { l.href = url + '#info'; });
       });
     };
     link();

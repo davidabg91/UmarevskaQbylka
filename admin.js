@@ -533,6 +533,7 @@
     const p = id ? S.products.find(x => x.id === id) : null;
     const d = p || { name: '', description: '', tag: '', color: '#c1272d', image_url: '', category: 'variety', sale_type: 'kg', price: 2, weights: [5, 10, 20], sizes: [],
       unit_label: 'бр.', unit_kg: 1, featured: false, badge: '', lead: '', note: '', bullets: [], promo_percent: null, promo_label: '', promo_until: null, active: true,
+      origin: 'България', quality_class: '', varieties: '', volume_l: null, storage: '', nutrition: [],
       sort: (S.products.reduce((m, x) => Math.max(m, +x.sort || 0), 0) + 10) };
     openDrawer(`<div class="drawer__head"><div><h2>${p ? esc(p.name) : 'Нов продукт'}</h2><span class="note">${p ? 'промените се виждат на сайта веднага след запазване' : 'попълнете и запазете'}</span></div><button class="drawer__close" data-close-drawer aria-label="Затвори">✕</button></div>
       <div class="upload"><img id="pImgPrev" src="${esc(d.image_url || 'img/apples.jpg')}" alt="" />
@@ -555,6 +556,20 @@
         <label class="field">Мерна единица<input id="pUnit" maxlength="20" value="${esc(d.unit_label || 'бр.')}" placeholder="бр." /></label>
         <label class="field">Тегло на 1 бр. в кг (за доставката)<input id="pUnitKg" inputmode="decimal" value="${esc(String(d.unit_kg == null ? 1 : d.unit_kg).replace('.', ','))}" /></label>
       </div>
+      <fieldset class="fieldset"><legend>Информация по закон (вижда се преди поръчката)</legend>
+        <label class="field">Държава на произход<input id="pOrigin" maxlength="60" value="${esc(d.origin || '')}" placeholder="България" /></label>
+        <div data-sale="kg" class="fields2">
+          <label class="field">Клас на качество<input id="pClass" maxlength="30" value="${esc(d.quality_class || '')}" placeholder="Екстра, I или II" /></label>
+          <label class="field">Сортове в микса (само за микс)<input id="pVarieties" maxlength="200" value="${esc(d.varieties || '')}" placeholder="Фуджи, Пинова, Флорина" /></label>
+        </div>
+        <div data-sale="unit">
+          <label class="field">Нетно количество в литри (напр. 3 или 0,7)<input id="pVolume" inputmode="decimal" value="${d.volume_l ? esc(String(+d.volume_l).replace('.', ',')) : ''}" placeholder="3" /></label>
+          <p class="note">От него сайтът сам изчислява и показва цената за литър.</p>
+        </div>
+        <label class="field">Условия на съхранение<textarea id="pStorage" maxlength="600">${esc(d.storage || '')}</textarea></label>
+        <label class="field">Хранителна стойност на 100 мл / 100 г — по един на ред: Показател | стойност<textarea id="pNutrition" style="min-height:150px" placeholder="Енергийна стойност | 195 kJ / 46 kcal&#10;Мазнини | < 0,5 g">${esc((d.nutrition || []).map(n => (n.label || '') + ' | ' + (n.value || '')).join('\n'))}</textarea></label>
+        <p class="note">Стойностите трябва да са същите като на етикета на опаковката.</p>
+      </fieldset>
       <fieldset class="fieldset"><legend>Промоция</legend>
         <div class="fields2">
           <label class="field">Намаление в %<input id="pPromo" inputmode="decimal" value="${d.promo_percent ? esc(String(+d.promo_percent).replace('.', ',')) : ''}" placeholder="напр. 15" /></label>
@@ -643,8 +658,13 @@
       promo_percent: promo > 0 ? promo : null, promo_label: val('pPromoLabel') || null, promo_until: val('pPromoUntil') || null,
       featured: checked('pFeat'), badge: val('pBadge') || null, note: val('pNote') || null, lead: val('pLead') || null,
       bullets: lines($('#pBullets').value).map((l, i) => { const k = l.indexOf('|'); return { icon: ['drop', 'shield', 'box'][i % 3], title: (k < 0 ? l : l.slice(0, k)).trim(), text: k < 0 ? '' : l.slice(k + 1).trim() }; }),
-      color: val('pColor') || '#c1272d', sort: Math.round(numOr(val('pSort'), 0)), active: checked('pActive')
+      color: val('pColor') || '#c1272d', sort: Math.round(numOr(val('pSort'), 0)), active: checked('pActive'),
+      origin: val('pOrigin') || null, quality_class: kg ? val('pClass') || null : null, varieties: kg ? val('pVarieties') || null : null,
+      volume_l: !kg && numOr(val('pVolume'), 0) > 0 ? Math.round(numOr(val('pVolume'), 0) * 1000) / 1000 : null, storage: val('pStorage') || null,
+      nutrition: lines($('#pNutrition').value).map(l => { const k = l.lastIndexOf('|'); return { label: (k < 0 ? l : l.slice(0, k)).trim().slice(0, 80), value: k < 0 ? '' : l.slice(k + 1).trim().slice(0, 40) }; })
+        .filter(n => n.label && n.value).slice(0, 14)
     };
+    if (row.volume_l != null && row.volume_l >= 1000) return show('Нетното количество е твърде голямо.');
     if (!row.name) return show('Въведете име на продукта.');
     if (row.price < 0) return show('Въведете цена.');
     if (kg && !weights.length) return show('Въведете поне един грамаж, напр. 5, 10, 20.');

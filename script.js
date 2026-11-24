@@ -294,6 +294,19 @@ const fmtNum = n => (Math.round((+n || 0) * 100) / 100).toString().replace('.', 
     const first = p.sale_type === 'kg' ? weightsOf(p)[0] : 1, promo = promoOf(p);
     return `<span class="variety__price">${promo ? `<s class="variety__old">${fmtNum(first * baseOf(p))} €</s>` : ''}<span class="vp">${fmtNum(first * priceOf(p))}</span> €</span>`;
   }
+  /* задължителната информация за храната — вижда се още в картата, преди поръчката */
+  const volOf = p => { const v = +p.volume_l; return p.sale_type !== 'kg' && v > 0 ? v : 0; };
+  const volLabel = v => v < 1 ? fmtNum(v * 1000) + ' мл' : fmtNum(v) + ' л';
+  function legal(p) {
+    const a = [];
+    if (volOf(p)) a.push(volLabel(volOf(p)) + ' · ' + fmtNum(priceOf(p) / volOf(p)) + ' €/л');
+    if (p.origin) a.push('Произход: ' + p.origin);
+    if (p.sale_type === 'kg' && p.quality_class) a.push('Клас: ' + p.quality_class);
+    if (p.varieties) a.push('Сортове: ' + p.varieties);
+    const more = p.storage || (Array.isArray(p.nutrition) && p.nutrition.length)
+      ? `<a data-plink href="produkt.html?id=${encodeURIComponent(p.id)}#info">${Array.isArray(p.nutrition) && p.nutrition.length ? 'Съхранение и хранителна стойност' : 'Съхранение'}</a>` : '';
+    return a.length || more ? `<p class="variety__legal">${a.map(esc).join(' · ')}${a.length && more ? ' · ' : ''}${more}</p>` : '';
+  }
   const promoBadge = p => promoOf(p) ? `<span class="variety__promo">${esc(p.promo_label || '−' + fmtNum(promoOf(p)) + '%')}</span>` : '';
 
   function card(p) {
@@ -310,6 +323,7 @@ const fmtNum = n => (Math.round((+n || 0) * 100) / 100).toString().replace('.', 
           <div class="variety__header-group">${p.badge ? `<span class="variety__badge">${esc(p.badge)}</span>` : ''}<h3>${esc(p.name)}</h3></div>
           <p class="variety__lead">${esc(p.lead || p.description || '')}</p>
           <div class="variety__bullets">${bullets.map((b, i) => `<div class="bullet-item"><span class="bullet-icon"><svg class="ico"><use href="#i-${ICONS.includes(b.icon) ? b.icon : ICONS[i % 3]}"/></svg></span><div class="bullet-text"><strong>${esc(b.title)}</strong><p>${esc(b.text)}</p></div></div>`).join('')}</div>
+          ${legal(p)}
           <div class="variety__footer-featured">
             ${p.tag ? `<span class="variety__tag variety__tag--green">${esc(p.tag)}</span>` : ''}
             <div class="variety__order">${controls(p)}<div class="variety__buy">${priceHtml(p)}<button class="btn btn--primary vadd">Поръчай</button></div></div>
@@ -322,6 +336,7 @@ const fmtNum = n => (Math.round((+n || 0) * 100) / 100).toString().replace('.', 
       ${promoBadge(p)}
       <h3>${esc(p.name)}</h3>
       <p>${esc(p.description || '')}</p>
+      ${legal(p)}
       ${p.tag ? `<span class="variety__tag">${esc(p.tag)}</span>` : ''}
       <div class="variety__order${sizesOf(p).length ? ' variety__order--sized' : ''}">${sizesOf(p).length ? '<span class="variety__cap" aria-hidden="true">Размери</span>' : ''}${controls(p)}<div class="variety__buy">${priceHtml(p)}<button class="btn btn--primary btn--sm vadd">Поръчай</button></div></div>
     </article>`;
